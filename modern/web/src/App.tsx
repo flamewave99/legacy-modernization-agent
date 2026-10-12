@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router';
+import { FindOwners, OwnersSearch } from './pages/FindOwners.js';
 import { Oups } from './pages/Oups.js';
 import { OwnerDetails } from './pages/OwnerDetails.js';
 import { Vets } from './pages/Vets.js';
@@ -10,6 +11,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<Welcome />} />
+      <Route path="/owners" element={<OwnersSearch />} />
+      <Route path="/owners/find" element={<FindOwners />} />
       <Route path="/owners/:ownerId" element={<OwnerDetails />} />
       <Route path="/vets" element={<Vets />} />
       <Route path="/oups" element={<Oups />} />

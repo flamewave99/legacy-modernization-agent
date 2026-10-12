@@ -11,3 +11,11 @@ errors.spec.ts › /oups shows the friendly error page with the exception messag
 errors.spec.ts › unknown owner id shows the friendly error page (HTTP 200)
 vets.spec.ts › vets page links to XML and JSON views
 vets.spec.ts › vets page lists vets by last name with specialties, "none" when empty
+find-owners.spec.ts › GET /owners without a lastName parameter lists all owners
+find-owners.spec.ts › a search matching several owners shows the list
+find-owners.spec.ts › a search with no match stays on the find form with "has not been found"
+find-owners.spec.ts › empty search lists all owners with address, city, telephone and pets
+find-owners.spec.ts › find owners form has a last name field, a search button and an add-owner link
+find-owners.spec.ts › search is a case-insensitive prefix match on last name
+find-owners.spec.ts › seed owners are listed in id order before owners added later
+home-and-nav.spec.ts › navbar links reach every top-level page
