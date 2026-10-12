@@ -113,6 +113,13 @@ describe('page routes and static assets', () => {
     });
   });
 
+  it('the owner edit form embeds the owner it pre-fills', async () => {
+    expect(preloaded((await get('/owners/1/edit')).body)).toMatchObject({
+      path: '/api/owners/1',
+      result: { ok: true, data: { id: 1, firstName: 'George' } },
+    });
+  });
+
   it('pages without data embed nothing', async () => {
     expect(preloaded((await get('/owners/find')).body)).toBeUndefined();
   });

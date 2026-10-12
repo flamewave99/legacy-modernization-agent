@@ -11,3 +11,20 @@ export async function getJson<T>(path: string, signal?: AbortSignal): Promise<Fe
   if (!res.ok) throw new Error(`GET ${path} failed with ${String(res.status)}`);
   return { ok: true, data: (await res.json()) as T };
 }
+
+/** Status and parsed JSON body (`undefined` when empty) of a write request. */
+export interface Sent {
+  status: number;
+  body: unknown;
+}
+
+/** Sends `body` as JSON. Any status resolves; only a network failure throws. */
+export async function sendJson(method: 'POST' | 'PUT', path: string, body: unknown): Promise<Sent> {
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  return { status: res.status, body: text ? (JSON.parse(text) as unknown) : undefined };
+}

@@ -24,3 +24,19 @@ find-owners.spec.ts › owner name in the list links to the owner details page
 owners.spec.ts › owner details › lists each pet with its visits, newest visit first
 owners.spec.ts › owner details › shows owner information, action links and pets for a seed owner
 visits.spec.ts › pets on the owner page link "Add Visit" in pet name order
+find-owners.spec.ts › a newly created owner is found by its last name
+owners.spec.ts › add owner › all fields empty: every field reports an error and nothing is saved
+owners.spec.ts › add owner › entered values are kept when the form is re-shown with errors
+owners.spec.ts › add owner › new owner form is empty with "New Owner" heading and "Add Owner" button
+owners.spec.ts › add owner › telephone "1" (1 to 10 digits) is accepted
+owners.spec.ts › add owner › telephone "123-456" is rejected
+owners.spec.ts › add owner › telephone "1234567890" (1 to 10 digits) is accepted
+owners.spec.ts › add owner › telephone "12345678901" is rejected
+owners.spec.ts › add owner › telephone "abc" is rejected
+owners.spec.ts › add owner › valid owner is saved and shown on its details page
+owners.spec.ts › add owner › whitespace-only first name is accepted (not trimmed)
+owners.spec.ts › edit owner › edit form is pre-filled, titled "Owner", with "Update Owner" button
+owners.spec.ts › edit owner › editing keeps the owner's pets
+owners.spec.ts › edit owner › invalid edit is rejected and the change is not saved
+owners.spec.ts › edit owner › saving changes redirects to the owner page with new values
+owners.spec.ts › owner details › output is HTML-escaped
