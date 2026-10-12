@@ -4,7 +4,7 @@ Migrating a legacy Java web app to TypeScript with AI coding agents. The work is
 
 The legacy app is [Spring Framework PetClinic](https://github.com/spring-petclinic/spring-framework-petclinic) (Spring MVC, JSP, XML config, JPA). The target is React + Vite, Fastify and Postgres, with the same routes and behavior.
 
-> **Status:** Phases 1–2 are done: the legacy app is pinned with tests, and the spec and plan are written. The rewrite (Phase 3) has not started.
+> **Status:** Phases 1–6 built. The Ralph loop is rebuilding the app task by task (see `docs/PARITY.md` for how many legacy behaviors the modern app already passes), with RAG, an MCP server and evals in place.
 
 ## How it works
 
@@ -67,6 +67,9 @@ npx @devcontainers/cli exec --workspace-folder . claude   # first time only: log
 | `modern/ratchet.txt` | Characterization tests already passing against the modern app (may only grow) |
 | `rag/` | Chunker, local embeddings (Ollama), pgvector index, `search` and `ask` CLIs |
 | `mcp/` | MCP server exposing `search_legacy_code` to Claude Code and the loop's agent |
+| `rag/eval/` | Retrieval eval: development and held-out question sets, `RESULTS*.md` |
+| `docs/PARITY.md` | Characterization tests passing on legacy vs. modern, per spec file |
+| `scripts/parity-report.mjs` | Regenerates `docs/PARITY.md` |
 | `tests/characterization/` | Behavior tests: the source of truth |
 | `SPEC.md` | Behavior spec derived from the legacy code |
 | `fix_plan.md` | Ordered task list for the rewrite |
