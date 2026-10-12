@@ -19,6 +19,9 @@ export default tseslint.config(
       '.claude/**',
       '.devcontainer/**',
       '.github/**',
+      // Separate packages with their own tsconfig, tests and dependencies (not root workspaces).
+      'rag/**',
+      'mcp/**',
     ],
   },
   eslint.configs.recommended,

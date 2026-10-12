@@ -91,4 +91,41 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - A docs-only or modern-only PR skips the legacy suite. This PR is the docs-only measurement; its time is in the PR description.
 - **N32 Task 1: TypeScript 6, not 7.** `typescript@latest` is 7.0.2 (the characterization suite uses it), but typescript-eslint 8.71 supports only `<6.1.0`, so `modern/` pins `typescript@~6.0.3`. Prettier skips `*.md`, `docker-compose.yml` and the protected paths so `npm run lint` never asks to reformat files the loop may not or should not touch.
 - **N33 Task 3: two tsconfigs in `modern/api`.** typescript-eslint's project service uses the nearest `tsconfig.json`, so that file covers `src`, `test` and `vitest.config.ts` with `noEmit` (used by `typecheck`), and `tsconfig.build.json` emits only `src` to `dist`. `@types/node` is pinned to `^24` to match the Node 24 runtime (latest is 26). `npm start` runs the compiled `dist/server.js`, so build first.
-- **N34 Task 4: reset runs through `pg`, not `psql`.** `db:reset` builds and runs `dist/db-reset.js`, which loads `db/schema.sql` and `db/seed.sql` in one transaction, so CI needs no Postgres client binary. The seed inserts explicit ids (the legacy H2 file uses `default`) so ids never depend on sequence state, then `setval`s each sequence to `max(id)`. Vitest now runs test files serially (`fileParallelism: false`) because integration tests share one database.
+- **N34 Ratchet CI runs only the listed tests.** Running all 60 characterization tests against a half-built modern app made each agent PR wait 7+ minutes while failing tests timed out (PR #8). CI now runs `--test-list modern/ratchet.txt`, which costs nothing while the list is empty and only covers passing tests later. Finding newly passing tests stays with the agent, locally, as fix_plan.md's conventions already say. CI enforces, the agent discovers.
+- **N35 RAG over legacy code (Phase 4).** See `rag/README.md`.
+  - Local embeddings: `nomic-embed-text` served by an Ollama container on the compose network. No API key, and the sandbox reaches it without internet access.
+  - Java is chunked per method, with its javadoc and annotations, plus a condensed type chunk: 102 files become 325 chunks.
+  - pgvector, one row per chunk per model, so the eval can compare models.
+  - Running the chunker over real files found three bugs before any test was written: annotation `(` taken as the method name, "interface" in javadoc taken as the type name, and an unnamed nested enum.
+  - First anecdotes: 4/6 questions retrieved well. The misses were "validation" (that word is absent from the validation code) and "default database".
+- **N36 MCP server (Phase 5).** `search_legacy_code` over stdio, registered with `claude mcp add --scope project`. See `mcp/README.md`.
+  - An end-to-end check with headless Claude, built-in tools disabled so the MCP tool was its only view of the code, found a real bug. Claude Code passes the model `structuredContent` rather than text when a tool declares an `outputSchema`, so the agent got file:line without code.
+  - After the fix it answered from code alone, with exact lines (`OwnerController.java:90-93`).
+  - A throwaway copy of the sandbox (separate compose project, no host ports) found two more first-run gaps before they reached the loop:
+    - A fresh Postgres volume had no `rag` database. The indexer now creates it.
+    - The MCP SDK's stdio client passes only an env allowlist (PATH, HOME, ...) to the server it launches, so the e2e test silently fell back to localhost. `.mcp.json` already passes the variables explicitly; the test now does too.
+- **N37 Parallel work alongside the loop.** RAG and MCP were built in a separate git worktree, so the loop's checkout stayed untouched.
+  - Strict up-to-date branch protection means my PRs and the loop's PRs can leave each other behind. A small watcher kept them updated (`gh pr update-branch`).
+  - The orchestrator should do this itself, and a merge queue is the large-scale answer.
+- **N38 Orchestrator v2: conflicts are part of the loop, not a failure.** My parallel PRs (#9, #10) left the loop's PR #11 conflicting in `NOTES.md`. v1 saw "no CI checks" (GitHub runs no CI on a conflicting PR), called it a CI failure, and gave the agent an empty log to "fix". v2:
+  - Merges `origin/migration` into the agent's branch before every push, and while waiting whenever the PR is `BEHIND`.
+  - On a conflict, writes `.ralph/feedback.md` telling the agent exactly which files conflict and to run `git merge origin/migration`, so the agent resolves its own conflicts.
+  - Treats "no checks" as stuck (a human looks), not as a CI failure.
+  - Watches all jobs, because the required `ci` gate only appears once its dependencies finish.
+  - Recreates the sandbox at start, so config changes take effect.
+  - Streams the agent's tool calls into the log live.
+  - Re-checks a resumed PR without running the agent when there is no feedback.
+- **N40 v2 self-test found two bugs in the CI-failure path.**
+  - Feedback was fetched with `gh run view --log-failed`, which refuses while other jobs in the run are still going. The PR shows `fail` as soon as one job fails, so the agent got "still in progress" instead of the error. The orchestrator now reads the failed job's own log from the jobs API, which is available immediately.
+  - Under `set -e` and `pipefail` that failed pipeline ended the orchestrator with exit 1 and no message. An `ERR` trap now reports the line and command, and the log fetch is non-fatal.
+- **N39 Orchestrator v2 self-test (2026-10-12).** A scripted agent added a failing unit test. CI failed, `.ralph/feedback.md` carried the failing job's log to the next iteration, and the scripted fix passed CI and auto-merged.
+- **N41 Merge-time race.** The resumed v2 self-test passed every path (resume without feedback, `BEHIND` sync, CI failure with the real job log, agent fix, auto-merge of PR #14). It also hit a race: in the seconds between GitHub's squash-merge and the PR reading `MERGED`, the orchestrator saw `migration` move (by this PR's own merge), merged it in, and pushed to the branch GitHub had just deleted. It now re-checks the PR state before syncing and after a failed push.
+- **N42 MCP inside the sandbox, verified; connectors locked out of the loop.**
+  - Headless Claude in the recreated sandbox loaded `search_legacy_code` (project scope), searched, then confirmed the cited lines with grep as the tool description asks, and answered the duplicate-pet-name question correctly with citations.
+  - The same session also loaded the human's claude.ai connectors (Claude Docs, Google Drive). Those go through the Anthropic API, which the firewall allows, so an unattended agent could have reached a personal Drive.
+  - The loop now runs Claude with `--strict-mcp-config --mcp-config .mcp.json`: only the project's server, a least-privilege tool set.
+- **N43 Resuming an older branch broke the agent's start.** #17 passed `--mcp-config .mcp.json`, a working-tree path, and I had verified it only on `migration`. Resuming the Task 4 branch, which predates `.mcp.json`, made Claude refuse to start ("MCP config file not found"). The orchestrator also counted each failed start as an attempt and used up all 3 in 4 seconds.
+  - The MCP config is now read from `origin/migration` and passed as a JSON string, like the prompt, so it is tamper-proof and branch-independent.
+  - A non-zero exit from the agent now stops the loop with the log path instead of consuming attempts.
+  - Verified by running the exact agent command on the old branch.
+- **N44 Task 4: reset runs through `pg`, not `psql`.** `db:reset` builds and runs `dist/db-reset.js`, which loads `db/schema.sql` and `db/seed.sql` in one transaction, so CI needs no Postgres client binary. The seed inserts explicit ids (the legacy H2 file uses `default`) so ids never depend on sequence state, then `setval`s each sequence to `max(id)`. Vitest now runs test files serially (`fileParallelism: false`) because integration tests share one database.
