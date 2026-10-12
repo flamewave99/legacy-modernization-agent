@@ -1,0 +1,13 @@
+# Private planning notes (not published)
+private/
+
+# Ralph loop logs
+logs/
+
+node_modules/
+dist/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
