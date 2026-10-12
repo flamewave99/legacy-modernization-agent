@@ -10,7 +10,7 @@ no Docker inside the sandbox, so `docker` commands are not available.
 **How work lands.** The agent commits on a `ralph/...` branch. The host orchestrator pushes it and
 opens a PR into `migration` with auto-merge. CI (`.github/workflows/ci.yml`) must pass: the
 characterization suite against legacy, build, lint and unit tests, and the ratchet against modern.
-If CI fails, the failure log appears in `.ralph/ci-feedback.md` for the next iteration to fix.
+If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the next iteration what to fix.
 
 **Conventions for every task**
 - From the repo root, `npm run build`, `npm run lint` and `npm test` must pass.

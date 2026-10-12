@@ -107,3 +107,11 @@ This file becomes README material, and the Ralph loop reads its tail every itera
 - **N37 Parallel work alongside the loop.** RAG and MCP were built in a separate git worktree, so the loop's checkout stayed untouched.
   - Strict up-to-date branch protection means my PRs and the loop's PRs can leave each other behind. A small watcher kept them updated (`gh pr update-branch`).
   - The orchestrator should do this itself, and a merge queue is the large-scale answer.
+- **N38 Orchestrator v2: conflicts are part of the loop, not a failure.** My parallel PRs (#9, #10) left the loop's PR #11 conflicting in `NOTES.md`. v1 saw "no CI checks" (GitHub runs no CI on a conflicting PR), called it a CI failure, and gave the agent an empty log to "fix". v2:
+  - Merges `origin/migration` into the agent's branch before every push, and while waiting whenever the PR is `BEHIND`.
+  - On a conflict, writes `.ralph/feedback.md` telling the agent exactly which files conflict and to run `git merge origin/migration`, so the agent resolves its own conflicts.
+  - Treats "no checks" as stuck (a human looks), not as a CI failure.
+  - Watches all jobs, because the required `ci` gate only appears once its dependencies finish.
+  - Recreates the sandbox at start, so config changes take effect.
+  - Streams the agent's tool calls into the log live.
+  - Re-checks a resumed PR without running the agent when there is no feedback.
