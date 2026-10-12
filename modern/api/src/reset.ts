@@ -25,3 +25,22 @@ export async function resetDatabase(databaseUrl: string): Promise<void> {
     await client.end();
   }
 }
+
+/**
+ * Seeds an empty database (no `owners` table) and leaves an existing one alone, so a production
+ * container keeps its data across restarts. Returns whether it seeded.
+ */
+export async function seedIfEmpty(databaseUrl: string): Promise<boolean> {
+  const client = new pg.Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    const res = await client.query<{ exists: boolean }>(
+      "SELECT to_regclass('public.owners') IS NOT NULL AS exists",
+    );
+    if (res.rows[0]?.exists === true) return false;
+  } finally {
+    await client.end();
+  }
+  await resetDatabase(databaseUrl);
+  return true;
+}

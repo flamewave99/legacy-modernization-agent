@@ -28,6 +28,22 @@ services:
       timeout: 3s
       retries: 20
 
+  # Modern TypeScript app (modern/Dockerfile): Fastify serves the API and the built web app on
+  # port 3000, the same single origin the characterization suite expects. Seeds `db` on first start.
+  modern:
+    image: petclinic-modern:local
+    build:
+      context: .
+      dockerfile: modern/Dockerfile
+    environment:
+      DATABASE_URL: postgres://petclinic:petclinic@db:5432/petclinic
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Local embedding model server for the RAG index (rag/). It runs on the compose network, so the
   # sandbox reaches it as http://ollama:11434 without any internet access.
   ollama:

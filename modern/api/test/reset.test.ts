@@ -1,7 +1,7 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { resetDatabase } from '../src/reset.js';
+import { resetDatabase, seedIfEmpty } from '../src/reset.js';
 
 const { databaseUrl } = loadConfig();
 
@@ -49,5 +49,21 @@ describe('db reset', () => {
   it('can run twice', async () => {
     await resetDatabase(databaseUrl);
     expect(await count('owners')).toBe(10);
+  });
+
+  it('seeds an empty database on first start', async () => {
+    await client.query(
+      'DROP TABLE IF EXISTS visits, pets, owners, types, vet_specialties, specialties, vets CASCADE',
+    );
+    expect(await seedIfEmpty(databaseUrl)).toBe(true);
+    expect(await count('owners')).toBe(10);
+  });
+
+  it('leaves an initialized database alone', async () => {
+    await client.query("UPDATE owners SET city = 'Kept' WHERE id = 1");
+    expect(await seedIfEmpty(databaseUrl)).toBe(false);
+    const res = await client.query<{ city: string }>('SELECT city FROM owners WHERE id = 1');
+    expect(res.rows[0]?.city).toBe('Kept');
+    await resetDatabase(databaseUrl);
   });
 });
