@@ -49,7 +49,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
   - Config from env: `PORT` (default 3000) and `DATABASE_URL` (default `postgres://petclinic:petclinic@localhost:5433/petclinic`, which is the host setup; the sandbox sets its own).
   - One Vitest test using `app.inject`.
   - Done when `npm test -w modern/api` passes.
-- [ ] **4. Schema and seed.**
+- [x] **4. Schema and seed.**
   - `modern/api/db/schema.sql` [SPEC §7.1] and `modern/api/db/seed.sql` with the **H2** seed values [SPEC §7.2].
   - Set sequences with `setval` to `max(id)`.
   - Script `npm run db:reset -w modern/api` drops, recreates and seeds.

@@ -128,3 +128,4 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - The MCP config is now read from `origin/migration` and passed as a JSON string, like the prompt, so it is tamper-proof and branch-independent.
   - A non-zero exit from the agent now stops the loop with the log path instead of consuming attempts.
   - Verified by running the exact agent command on the old branch.
+- **N44 Task 4: reset runs through `pg`, not `psql`.** `db:reset` builds and runs `dist/db-reset.js`, which loads `db/schema.sql` and `db/seed.sql` in one transaction, so CI needs no Postgres client binary. The seed inserts explicit ids (the legacy H2 file uses `default`) so ids never depend on sequence state, then `setval`s each sequence to `max(id)`. Vitest now runs test files serially (`fileParallelism: false`) because integration tests share one database.
