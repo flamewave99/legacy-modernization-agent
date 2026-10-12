@@ -1,0 +1,15 @@
+{
+  "name": "legacy-modernization-agent sandbox",
+  "dockerComposeFile": ["../docker-compose.yml", "compose.yaml"],
+  "service": "workspace",
+  "runServices": ["workspace", "db", "legacy"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "waitFor": "postStartCommand",
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code", "dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}

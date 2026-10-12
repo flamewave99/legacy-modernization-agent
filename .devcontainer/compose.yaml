@@ -1,0 +1,31 @@
+# Overlay on the root docker-compose.yml: adds the sandboxed workspace container.
+# It reaches the other services by name on the compose network:
+#   legacy app  http://legacy:8080
+#   Postgres    postgres://petclinic:petclinic@db:5432/petclinic
+# No Docker socket is mounted, so the agent cannot control Docker.
+# Relative paths resolve from the repo root (the first compose file's directory).
+services:
+  workspace:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    command: sleep infinity
+    cap_add:
+      - NET_ADMIN   # needed by init-firewall.sh (iptables)
+      - NET_RAW
+    environment:
+      DATABASE_URL: postgres://petclinic:petclinic@db:5432/petclinic
+      LEGACY_URL: http://legacy:8080
+      NODE_OPTIONS: --max-old-space-size=4096
+      CLAUDE_CONFIG_DIR: /home/node/.claude
+    volumes:
+      - .:/workspace:cached
+      - claude-config:/home/node/.claude
+    depends_on:
+      db:
+        condition: service_healthy
+      legacy:
+        condition: service_started
+
+volumes:
+  claude-config:
