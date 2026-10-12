@@ -3,13 +3,7 @@
     "legacy-code": {
       "type": "stdio",
       "command": "npm",
-      "args": [
-        "--prefix",
-        "mcp",
-        "run",
-        "-s",
-        "start"
-      ],
+      "args": ["--prefix", "mcp", "run", "-s", "start"],
       "env": {
         "RAG_DATABASE_URL": "${RAG_DATABASE_URL:-postgres://petclinic:petclinic@localhost:5433/rag}",
         "OLLAMA_URL": "${OLLAMA_URL:-http://localhost:11434}"
