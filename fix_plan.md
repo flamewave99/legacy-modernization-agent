@@ -84,7 +84,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
 All JSON routes live under `/api`. Validation failures return **422** `{ errors: { field: message } }`.
 A missing entity returns **404** `{ error }`.
 
-- [ ] **9. Read endpoints.**
+- [x] **9. Read endpoints.**
   - `GET /api/owners?lastName=`: ILIKE prefix, unescaped, `ORDER BY id`, pets included [SPEC §5.1].
   - `GET /api/owners/:id`: owner with sorted pets, each with type name and sorted visits.
   - `GET /api/pettypes`.
@@ -92,21 +92,21 @@ A missing entity returns **404** `{ error }`.
   - `GET /api/vets`.
   - A non-numeric id returns 400.
   - Integration tests against the seeded DB.
-- [ ] **10. Legacy vets endpoints.**
+- [x] **10. Legacy vets endpoints.**
   - `GET /vets.json` and `GET /vets.xml` with exact bodies and content types [SPEC §7.3].
   - Done when `BASE_URL=http://localhost:3000 npm --prefix tests/characterization test -- vets.spec.ts -g "GET /vets"` passes.
-- [ ] **11. Owner write endpoints.**
+- [x] **11. Owner write endpoints.**
   - `POST /api/owners` returns 201 `{ id }`.
   - `PUT /api/owners/:id` returns 204.
   - Both use task 7's validation and return 422 on errors.
   - Integration tests.
-- [ ] **12. Pet write endpoints.**
+- [x] **12. Pet write endpoints.**
   - `POST /api/owners/:ownerId/pets` and `PUT /api/owners/:ownerId/pets/:petId`.
   - The type is given by name; an unknown name gives `invalid value` (D5).
   - Use path ids only and ignore any id in the body (D7).
   - Duplicate check on create only.
   - Integration tests.
-- [ ] **13. Visit write endpoint.**
+- [x] **13. Visit write endpoint.**
   - `POST /api/owners/:ownerId/pets/:petId/visits`.
   - Integration tests, including the D1 fix (blank date gives 422 `is required`).
 

@@ -74,7 +74,7 @@ function digitsValue(digits: string): bigint {
  * Value of the decimal digit at `index`. Unicode encodes each digit set as a contiguous 0-9 run,
  * so the value is the offset from the start of the contiguous Nd run, modulo 10.
  */
-function digitValue(digits: string, index: number): number {
+export function digitValue(digits: string, index: number): number {
   let code = digits.charCodeAt(index);
   let offset = 0;
   while (DIGIT.test(String.fromCharCode(code - 1))) {
