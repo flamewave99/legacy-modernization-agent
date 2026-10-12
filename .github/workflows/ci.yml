@@ -202,12 +202,20 @@ jobs:
 
       - uses: ./.github/actions/setup-characterization
 
+      # CI enforces, the agent discovers: only tests already listed in modern/ratchet.txt run here,
+      # so a half-built app does not make every PR wait out the timeouts of 60 failing tests.
+      # Finding newly passing tests is the agent's job, locally (fix_plan.md "Conventions").
       - name: Characterization ratchet against modern
         run: |
+          grep -vE '^\s*(#|$)' modern/ratchet.txt > /tmp/ratchet-list.txt || true
+          if [ ! -s /tmp/ratchet-list.txt ]; then
+            echo "modern/ratchet.txt lists no tests yet; nothing to enforce."
+            exit 0
+          fi
           for _ in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/api/health && break; sleep 1; done
           cd tests/characterization
           BASE_URL=http://localhost:3000 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/modern-results.json \
-            npx playwright test --reporter=json,list --output=test-results-modern || true
+            npx playwright test --test-list /tmp/ratchet-list.txt --reporter=json,list --output=test-results-modern || true
           node ../../.github/scripts/check-ratchet.mjs /tmp/modern-results.json ../../modern/ratchet.txt
 
       - name: Upload test report
