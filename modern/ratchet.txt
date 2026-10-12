@@ -1,0 +1,3 @@
+# Characterization tests that pass against the modern app, one per line, exactly as
+# .github/scripts/check-ratchet.mjs prints them ("<spec file> › <describe> › <test title>").
+# CI fails if a listed test stops passing or if a line is removed. Add lines; never remove them.
