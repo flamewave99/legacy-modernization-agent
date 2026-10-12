@@ -4,16 +4,19 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "fastify": "^5.12.5"
+    "fastify": "^5.12.5",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "vitest": "^5.0.3"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:reset": "tsc -p tsconfig.build.json && node dist/db-reset.js"
   }
 }
