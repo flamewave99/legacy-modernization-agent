@@ -11,3 +11,6 @@ playwright-report/
 .env
 .env.*
 !.env.example
+
+# Orchestrator feedback for the agent (CI failure logs)
+.ralph/

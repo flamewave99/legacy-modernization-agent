@@ -20,6 +20,11 @@ services:
       CLAUDE_CONFIG_DIR: /home/node/.claude
     volumes:
       - .:/workspace:cached
+      # The host orchestrator runs git in this same checkout with the human's GitHub login.
+      # Read-only config and hooks stop the agent from planting commands (hooks, core.fsmonitor,
+      # credential helpers) that the host's git would execute.
+      - ./.git/config:/workspace/.git/config:ro
+      - ./.git/hooks:/workspace/.git/hooks:ro
       - claude-config:/home/node/.claude
     depends_on:
       db:
