@@ -79,3 +79,10 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - **False positive found.** The first run also stopped because of `.claude/scheduled_tasks.lock`, a runtime file Claude Code wrote on the host. Claude Code runtime files are now gitignored.
 - **N28 The human's `gh` token has no `workflow` scope during loop runs.** It was granted only to land `.github/workflows/ci.yml`, then removed. GitHub then rejects any orchestrator push that changes a workflow file, so the merge gate cannot be edited from the loop. This backs up the CI path guard with a rule GitHub enforces.
 - **N29 Auto-merge lags.** On PR #3, GitHub merged about 3.5 minutes after CI passed (state `CLEAN`, auto-merge enabled). The orchestrator now waits up to 15 minutes for the merge instead of 5.
+- **N30 Faster CI** (measured on PRs #1–#4 before the change: about 100s cached, 170s cold).
+  - Parallel jobs behind one `ci` gate job, so branch protection still needs a single check.
+  - Selective testing: the legacy suite runs only when `legacy/`, `docker/`, the tests, compose or CI change, and always on pushes to `migration`/`main`, nightly and on manual runs.
+  - npm and Playwright browser caching.
+  - Postgres as a service container.
+  - `legacy/` and `docker/` became protected paths, which is what makes skipping the legacy suite on agent PRs safe.
+  - At thousands of PRs a day, the next steps would be a merge queue (batching instead of rebase-and-rerun), affected-only builds (Nx/Turborepo), test sharding and larger runners.

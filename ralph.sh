@@ -21,7 +21,7 @@ main() {
   local max_ci_failures="${MAX_CI_FAILURES:-3}"
   local max_idle="${MAX_IDLE_ITERATIONS:-2}"
   local base="${BASE_BRANCH:-migration}"
-  local protected='^(ralph\.sh|PROMPT\.md|CLAUDE\.md|\.devcontainer/|\.github/|\.claude/|tests/characterization/)'
+  local protected='^(ralph\.sh|PROMPT\.md|CLAUDE\.md|\.devcontainer/|\.github/|\.claude/|tests/characterization/|legacy/|docker/)'
   local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/legacy-modernization-agent"
   local feedback=".ralph/ci-feedback.md"
 

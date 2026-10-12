@@ -2,7 +2,7 @@ You are one iteration of a Ralph loop building `modern/`. Follow CLAUDE.md.
 
 You run inside the dev container. The legacy app is at `$LEGACY_URL` and Postgres at `$DATABASE_URL`. There is no Docker and no access to GitHub. A host orchestrator has already checked out a `ralph/...` branch for you. When you finish, it pushes your commits, opens a PR into `migration`, and GitHub merges it only if CI passes.
 
-Git rules: commit your work on the current branch. Do not push, switch branches, create branches, rebase, or change git config. Leave no uncommitted changes. Never edit protected paths: `tests/characterization/`, `.github/`, `.devcontainer/`, `.claude/`, `ralph.sh`, `PROMPT.md`, `CLAUDE.md`. The orchestrator stops the loop if any of these change.
+Git rules: commit your work on the current branch. Do not push, switch branches, create branches, rebase, or change git config. Leave no uncommitted changes. Never edit protected paths: `tests/characterization/`, `legacy/`, `docker/`, `.github/`, `.devcontainer/`, `.claude/`, `ralph.sh`, `PROMPT.md`, `CLAUDE.md`. The orchestrator stops the loop if any of these change.
 
 1. If `.ralph/ci-feedback.md` exists, CI failed on this branch. Read it, reproduce the failure locally, fix the cause, and commit. Do only that this iteration. Skip to step 7.
 2. Read `fix_plan.md`, `SPEC.md` and the last entries of `NOTES.md`. Pick the FIRST unchecked task. Do only that task.
