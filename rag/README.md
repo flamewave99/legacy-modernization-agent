@@ -23,13 +23,32 @@ npm test                                                  # chunker unit tests
 
 Config (env): `RAG_DATABASE_URL` (default `postgres://petclinic:petclinic@localhost:5433/rag`), `OLLAMA_URL` (default `http://localhost:11434`), `RAG_EMBED_MODEL` (default `nomic-embed-text`).
 
-## First observations (2026-10-12, six hand-picked questions, before any tuning)
+## Eval (Phase 6)
 
-These are anecdotes, not measurements. The Phase 6 eval replaces them with a hit rate over about 20 questions with expected files.
+`npm run eval` scores retrieval on 22 development questions (`eval/questions.json`), each with the legacy files that answer it. `npm run eval -- --holdout <strategies>` runs 12 held-out questions (`eval/questions-holdout.json`), written after the development results were seen and run once. Full per-question ranks are in `eval/RESULTS.md` and `eval/RESULTS-holdout.md`.
 
-- **Good:** single-owner redirect (`OwnerController#processFindForm`), vets as JSON (`VetController#showJsonVetList`), error page (`exception.jsp`), duplicate pet names (`Owner#getPet`, `PetController#processCreationForm`).
-- **Missed:** "where is owner validation handled?" returned repository code instead of the `@NotEmpty`/`@Digits` annotations on `Owner`/`Person`. The word "validation" never appears in that code, a known weakness of pure vector search.
-- **Missed:** "which database is used by default?" ranked the MySQL schema first. The answer is the `H2` profile marked `activeByDefault` in `pom.xml`.
-- **Grounding held:** when retrieval missed the controller code for a question, `ask` said the excerpts lacked it instead of inventing an answer.
+Development set (22 questions; a hit is a chunk from an expected file):
 
-Ideas to measure later, not apply blindly: hybrid search (vectors plus keyword/BM25), a code-specialized hosted model (Voyage), and a summary chunk per file.
+| Strategy | hit@1 | hit@5 | MRR@10 |
+|---|---|---|---|
+| keyword, Postgres `ts_rank` | 5 (23%) | 14 (64%) | 0.39 |
+| keyword, BM25 | 10 (45%) | 16 (73%) | 0.60 |
+| vector, `mxbai-embed-large` (1024 dims) | 14 (64%) | 16 (73%) | 0.67 |
+| **vector, `nomic-embed-text` (768 dims, default)** | 15 (68%) | 19 (86%) | 0.76 |
+| hybrid, `ts_rank` + nomic | 10 (45%) | 16 (73%) | 0.56 |
+| **hybrid, BM25 + nomic** | 15 (68%) | 21 (95%) | 0.78 |
+
+Held-out set (12 questions, the two finalists only):
+
+| Strategy | hit@1 | hit@5 | MRR@10 |
+|---|---|---|---|
+| vector, nomic | 6 (50%) | 12 (100%) | 0.72 |
+| hybrid, BM25 + nomic | 8 (67%) | 11 (92%) | 0.77 |
+
+What the numbers say:
+- **Keyword search needs IDF.** Postgres `ts_rank` counts a word that appears in nearly every chunk ("owner", "pet") as much as a rare one. Hybrid search built on it was *worse* than vectors alone. BM25 (`src/bm25.ts`, textbook k1=1.2 and b=0.75, Postgres's English stemmer) doubled keyword hit@1 and made hybrid search helpful.
+- **The bigger embedding model was worse.** `mxbai-embed-large` is 2.5x larger and lost to `nomic-embed-text` on this codebase. Only measuring shows that.
+- **Hybrid fixes the vocabulary misses.** "Where are owner fields validated?" (the code says `@NotEmpty`, never "validation") goes from not found to rank 3.
+- **It is not a clear overall winner.** Across all 34 questions hybrid ranks the right file first 23 times vs 21, and finds it in the top 5 32 vs 31 times. One question is 3 to 8 points here, so that is within noise.
+
+Decision: hybrid ships as a flag, `RAG_STRATEGY=hybrid`. The default stays `vector` (current behavior) until there is more evidence, for example logged queries from the loop's agent. With hybrid, the reported score is the RRF fusion score, so only the order is meaningful.

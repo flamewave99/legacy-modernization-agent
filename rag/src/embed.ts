@@ -6,9 +6,14 @@ export interface Embedder {
 }
 
 /**
- * Local embeddings through an Ollama server. nomic-embed-text was trained with task prefixes, and
- * retrieval quality drops without them: documents get "search_document: ", queries "search_query: ".
+ * Local embeddings through an Ollama server. Some models were trained with task prefixes and
+ * retrieve worse without them, so each model's documented prefixes are applied here.
  */
+const PREFIXES: Record<string, { document: string; query: string }> = {
+  'nomic-embed-text': { document: 'search_document: ', query: 'search_query: ' },
+  'mxbai-embed-large': { document: '', query: 'Represent this sentence for searching relevant passages: ' },
+};
+
 export class OllamaEmbedder implements Embedder {
   constructor(
     readonly model: string,
@@ -18,19 +23,15 @@ export class OllamaEmbedder implements Embedder {
   async embedDocuments(texts: string[]): Promise<number[][]> {
     const out: number[][] = [];
     for (let i = 0; i < texts.length; i += 32) {
-      out.push(...(await this.embed(texts.slice(i, i + 32).map((t) => this.prefix('search_document: ', t)))));
+      out.push(...(await this.embed(texts.slice(i, i + 32).map((t) => (PREFIXES[this.model]?.document ?? '') + t))));
     }
     return out;
   }
 
   async embedQuery(text: string): Promise<number[]> {
-    const [vector] = await this.embed([this.prefix('search_query: ', text)]);
+    const [vector] = await this.embed([(PREFIXES[this.model]?.query ?? '') + text]);
     if (!vector) throw new Error('Ollama returned no embedding');
     return vector;
-  }
-
-  private prefix(prefix: string, text: string): string {
-    return this.model.startsWith('nomic-embed') ? prefix + text : text;
   }
 
   private async embed(input: string[]): Promise<number[][]> {

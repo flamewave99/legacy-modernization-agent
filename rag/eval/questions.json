@@ -1,0 +1,27 @@
+{
+  "description": "Retrieval eval for the legacy PetClinic index. Each question lists path suffixes of the files that answer it (relative to legacy/src/main/ unless they start with legacy/). A result counts as relevant when its path ends with any expected suffix. Written from SPEC.md and the legacy code, not from retriever output.",
+  "questions": [
+    { "id": "find-one-owner", "question": "What happens when a last-name search matches exactly one owner?", "expected": ["web/OwnerController.java"] },
+    { "id": "owner-validation", "question": "Where are the owner form fields validated, such as required fields and the telephone digits rule?", "expected": ["model/Owner.java", "model/Person.java"] },
+    { "id": "duplicate-pet", "question": "How are duplicate pet names rejected for the same owner?", "expected": ["web/PetController.java", "model/Owner.java"] },
+    { "id": "pet-validator", "question": "Which rules does the pet form validator enforce?", "expected": ["web/PetValidator.java"] },
+    { "id": "pet-type-parse", "question": "How is a pet type turned from the submitted form text into an object?", "expected": ["web/PetTypeFormatter.java"] },
+    { "id": "vets-json", "question": "Which URL returns the list of vets as JSON?", "expected": ["web/VetController.java"] },
+    { "id": "error-page", "question": "What page is shown when a controller throws an exception?", "expected": ["jsp/exception.jsp", "spring/mvc-core-config.xml"] },
+    { "id": "default-db", "question": "Which database does the app use by default and where is its seed data?", "expected": ["legacy/pom.xml", "db/h2/data.sql", "spring/datasource-config.xml", "spring/data-access.properties"] },
+    { "id": "pet-sort", "question": "How are an owner's pets sorted when they are displayed?", "expected": ["model/Owner.java"] },
+    { "id": "visit-order", "question": "In what order are a pet's visits listed?", "expected": ["model/Pet.java"] },
+    { "id": "date-format", "question": "What date format do the birth date and visit date fields accept?", "expected": ["model/Pet.java", "model/Visit.java"] },
+    { "id": "owner-details-view", "question": "Which view renders the owner details page with the pets and visits table?", "expected": ["jsp/owners/ownerDetails.jsp"] },
+    { "id": "visit-default-date", "question": "How does the new visit form get its default date?", "expected": ["model/Visit.java"] },
+    { "id": "schema", "question": "Where is the SQL that creates the owners and pets tables?", "expected": ["db/h2/schema.sql", "db/hsqldb/schema.sql", "db/mysql/schema.sql", "db/postgresql/schema.sql"] },
+    { "id": "messages", "question": "Where are the user-facing validation error messages like 'is required' defined?", "expected": ["messages/messages.properties"] },
+    { "id": "jpa-last-name", "question": "How is the search by last name implemented in the JPA repository?", "expected": ["repository/jpa/JpaOwnerRepositoryImpl.java"] },
+    { "id": "edit-pet", "question": "Which controller method saves changes to an existing pet?", "expected": ["web/PetController.java"] },
+    { "id": "vet-cache", "question": "How is the list of vets cached?", "expected": ["service/ClinicServiceImpl.java", "spring/tools-config.xml"] },
+    { "id": "nav-menu", "question": "What links does the navigation bar contain?", "expected": ["tags/menu.tag", "tags/menuItem.tag"] },
+    { "id": "add-owner-form", "question": "Which form fields does the add owner page have?", "expected": ["jsp/owners/createOrUpdateOwnerForm.jsp"] },
+    { "id": "disallow-id", "question": "How does the app stop a submitted form from setting the entity id?", "expected": ["web/OwnerController.java", "web/VisitController.java", "web/PetController.java"] },
+    { "id": "crash", "question": "What happens when you request the /oups URL?", "expected": ["web/CrashController.java"] }
+  ]
+}

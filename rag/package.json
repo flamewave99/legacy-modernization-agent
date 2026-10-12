@@ -8,7 +8,8 @@
     "search": "tsx src/search-cli.ts",
     "ask": "tsx src/ask-cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx src/eval-cli.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

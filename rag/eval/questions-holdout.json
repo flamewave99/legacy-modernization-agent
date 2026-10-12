@@ -1,0 +1,17 @@
+{
+  "description": "Held-out set: written after the development set's results were seen, before any results existed for these questions, and run once to confirm the choice between the two finalist strategies. Same format and scoring as questions.json.",
+  "questions": [
+    { "id": "owner-by-id", "question": "How does the app load one owner by id together with their pets?", "expected": ["repository/jpa/JpaOwnerRepositoryImpl.java", "repository/OwnerRepository.java"] },
+    { "id": "view-resolver", "question": "Where are view names mapped to JSP files?", "expected": ["spring/mvc-view-config.xml"] },
+    { "id": "vets-xml", "question": "Which class wraps the vet list for XML output?", "expected": ["model/Vets.java"] },
+    { "id": "visit-form-view", "question": "Which page renders the form for adding a visit to a pet?", "expected": ["jsp/pets/createOrUpdateVisitForm.jsp"] },
+    { "id": "welcome", "question": "What does the home page show?", "expected": ["jsp/welcome.jsp"] },
+    { "id": "transactions", "question": "How are database transactions set up for the service layer?", "expected": ["spring/business-config.xml", "service/ClinicServiceImpl.java"] },
+    { "id": "seed-vets", "question": "Where is the sample data for vets and their specialties inserted?", "expected": ["db/h2/data.sql", "db/hsqldb/data.sql", "db/mysql/data.sql", "db/postgresql/data.sql"] },
+    { "id": "save-visit", "question": "How is a new visit saved for a pet?", "expected": ["web/VisitController.java", "repository/jpa/JpaVisitRepositoryImpl.java", "service/ClinicServiceImpl.java"] },
+    { "id": "field-errors", "question": "How does the shared form input show an error message next to a field?", "expected": ["tags/inputField.tag", "tags/selectField.tag"] },
+    { "id": "bootstrap", "question": "Where is the web application started without a web.xml file?", "expected": ["petclinic/PetclinicInitializer.java"] },
+    { "id": "date-print", "question": "How are dates formatted when they are printed on a page?", "expected": ["tags/localDate.tag"] },
+    { "id": "pet-form-buttons", "question": "How does the pet form decide whether to show Add Pet or Update Pet?", "expected": ["jsp/pets/createOrUpdatePetForm.jsp"] }
+  ]
+}
