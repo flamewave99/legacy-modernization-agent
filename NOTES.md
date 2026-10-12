@@ -159,3 +159,4 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - Results snapshot: 9/25 tasks, the parity, retrieval eval and guardrail tests.
   - Mermaid architecture diagram, guardrails table, and lessons drawn from these notes.
   - The "GIF" is an animated SVG generated from a real iteration log by `scripts/log-to-svg.mjs`: the agent resolving the PR #11 merge conflict. Rendered in Chromium to check it before committing. GitHub plays SVG animations in a README, so no screen recorder is needed.
+- **N55 The eval is reproducible across machines.** The first CI run of `rag-eval` (a fresh index on a GitHub runner) matched the local numbers exactly on both sets: development 19/22 vector and 21/22 hybrid; held-out 12/12 and 11/12. One run is not enough to turn the eval into a gate, but it is the right kind of evidence for that decision.
