@@ -28,5 +28,17 @@ services:
       timeout: 3s
       retries: 20
 
+  # Local embedding model server for the RAG index (rag/). It runs on the compose network, so the
+  # sandbox reaches it as http://ollama:11434 without any internet access.
+  ollama:
+    image: ollama/ollama:0.40.3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
 volumes:
   pgdata:
+  ollama-models:
+    # Fixed name so every checkout (main folder and worktrees) shares one copy of the model weights.
+    name: ollama-models
