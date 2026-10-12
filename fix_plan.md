@@ -95,7 +95,7 @@ A missing entity returns **404** `{ error }`.
 - [x] **10. Legacy vets endpoints.**
   - `GET /vets.json` and `GET /vets.xml` with exact bodies and content types [SPEC §7.3].
   - Done when `BASE_URL=http://localhost:3000 npm --prefix tests/characterization test -- vets.spec.ts -g "GET /vets"` passes.
-- [ ] **11. Owner write endpoints.**
+- [x] **11. Owner write endpoints.**
   - `POST /api/owners` returns 201 `{ id }`.
   - `PUT /api/owners/:id` returns 204.
   - Both use task 7's validation and return 422 on errors.
