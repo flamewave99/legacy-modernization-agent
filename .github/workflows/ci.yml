@@ -1,0 +1,125 @@
+# Merge gate for main. Branch protection requires this job ("ci") to pass before any PR merges.
+# The Ralph agent's GitHub token has no "workflows" permission, so it cannot change this file.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, migration]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Agent branches (ralph/*) may not touch the gate itself: the behavior tests,
+      # CI scripts, the sandbox, the loop script or Claude settings.
+      - name: Guard protected paths on agent branches
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'ralph/')
+        run: |
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          blocked=$(echo "$changed" | grep -E '^(tests/characterization/|\.github/|\.devcontainer/|\.claude/|ralph\.sh$|PROMPT\.md$|CLAUDE\.md$)' || true)
+          if [ -n "$blocked" ]; then
+            echo "::error::Agent branches may not change protected paths:"
+            echo "$blocked"
+            exit 1
+          fi
+
+      - name: Ratchet list may only grow
+        if: github.event_name == 'pull_request'
+        run: |
+          base="origin/${{ github.base_ref }}"
+          if git cat-file -e "$base:modern/ratchet.txt" 2>/dev/null; then
+            git show "$base:modern/ratchet.txt" > /tmp/ratchet-base.txt
+            missing=$(grep -vE '^\s*(#|$)' /tmp/ratchet-base.txt | while IFS= read -r line; do
+              grep -qxF -- "$line" modern/ratchet.txt 2>/dev/null || echo "$line"
+            done)
+            if [ -n "$missing" ]; then
+              echo "::error::Entries removed from modern/ratchet.txt:"
+              echo "$missing"
+              exit 1
+            fi
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build legacy image (layer-cached)
+        uses: docker/build-push-action@v7
+        with:
+          context: legacy
+          file: docker/legacy.Dockerfile
+          tags: petclinic-legacy:local
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start legacy app and Postgres
+        run: |
+          docker compose up -d --no-build --wait db
+          docker compose up -d --no-build legacy
+          for i in $(seq 1 90); do curl -sf -o /dev/null http://localhost:8080/ && exit 0; sleep 2; done
+          docker compose logs legacy | tail -50
+          exit 1
+
+      - name: Install characterization suite
+        working-directory: tests/characterization
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run typecheck
+
+      - name: Characterization suite against legacy (including @legacy-bug tests)
+        working-directory: tests/characterization
+        env:
+          INCLUDE_LEGACY_BUGS: '1'
+        run: npm test
+
+      - name: Modern build, lint and unit tests
+        if: hashFiles('package.json') != ''
+        env:
+          DATABASE_URL: postgres://petclinic:petclinic@localhost:5433/petclinic
+        run: |
+          npm ci
+          npm run build
+          npm run lint
+          npm test
+
+      - name: Characterization ratchet against modern
+        if: hashFiles('modern/api/package.json') != ''
+        env:
+          DATABASE_URL: postgres://petclinic:petclinic@localhost:5433/petclinic
+        run: |
+          npm run db:reset -w modern/api --if-present
+          (npm run start -w modern/api > /tmp/modern.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/api/health && break; sleep 1; done
+          cd tests/characterization
+          BASE_URL=http://localhost:3000 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/modern-results.json \
+            npx playwright test --reporter=json,list --output=test-results-modern || true
+          node ../../.github/scripts/check-ratchet.mjs /tmp/modern-results.json ../../modern/ratchet.txt
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-reports
+          path: |
+            tests/characterization/playwright-report
+            tests/characterization/test-results
+            tests/characterization/test-results-modern
+            /tmp/modern.log
+          if-no-files-found: ignore

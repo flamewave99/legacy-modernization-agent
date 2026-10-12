@@ -2,6 +2,7 @@ services:
   # Legacy Spring MVC/JSP PetClinic. Default H2 profile: in-memory DB,
   # re-seeded from legacy/src/main/resources/db/h2/data.sql on every start.
   legacy:
+    image: petclinic-legacy:local
     build:
       context: ./legacy
       dockerfile: ../docker/legacy.Dockerfile
