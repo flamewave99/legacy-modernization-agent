@@ -19,3 +19,8 @@ find-owners.spec.ts › find owners form has a last name field, a search button 
 find-owners.spec.ts › search is a case-insensitive prefix match on last name
 find-owners.spec.ts › seed owners are listed in id order before owners added later
 home-and-nav.spec.ts › navbar links reach every top-level page
+find-owners.spec.ts › a search matching exactly one owner redirects to that owner
+find-owners.spec.ts › owner name in the list links to the owner details page
+owners.spec.ts › owner details › lists each pet with its visits, newest visit first
+owners.spec.ts › owner details › shows owner information, action links and pets for a seed owner
+visits.spec.ts › pets on the owner page link "Add Visit" in pet name order

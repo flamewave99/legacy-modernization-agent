@@ -133,7 +133,7 @@ A missing entity returns **404** `{ error }`.
   - Search via `?lastName=`.
   - One result navigates with replace to `/owners/{id}`; none shows the error in the field container.
   - Done when `find-owners.spec.ts` passes, except tests needing owner create (task 20).
-- [ ] **19. Owner details page** [SPEC §4.3].
+- [x] **19. Owner details page** [SPEC §4.3].
   - Keep the label/value text order exactly.
   - Done when the `owner details` tests in `owners.spec.ts` pass (the escaping test needs task 20).
 - [ ] **20. Owner form, new and edit** [SPEC §4.4].
