@@ -2,3 +2,5 @@
 # .github/scripts/check-ratchet.mjs prints them ("<spec file> › <describe> › <test title>").
 # CI fails if a listed test stops passing or if a line is removed. Add lines; never remove them.
 errors.spec.ts › unknown path returns 404
+vets.spec.ts › GET /vets.json returns the vet list as JSON
+vets.spec.ts › GET /vets.xml returns the vet list as XML
