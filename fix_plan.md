@@ -142,7 +142,7 @@ A missing entity returns **404** `{ error }`.
   - Each error renders inside the field's wrapper element.
   - After saving, navigate to `/owners/{id}`.
   - Done when `owners.spec.ts` and `find-owners.spec.ts` pass.
-- [ ] **21. Pet form, new and edit** [SPEC §4.5].
+- [x] **21. Pet form, new and edit** [SPEC §4.5].
   - `<select name="type">`.
   - Date input shows and accepts `yyyy-MM-dd`, and also accepts `yyyy/MM/dd` typed in.
   - Owner row.
