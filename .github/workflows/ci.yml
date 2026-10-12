@@ -19,6 +19,9 @@ on:
 permissions:
   contents: read
 
+# Runners are pinned (not ubuntu-latest, which moves to Ubuntu 26 on 2026-10-19) so an OS upgrade
+# is a deliberate change with its own PR, not a surprise that breaks Playwright's system libraries.
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -28,7 +31,7 @@ env:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       legacy: ${{ steps.filter.outputs.legacy }}
@@ -96,7 +99,7 @@ jobs:
   legacy-suite:
     needs: changes
     if: needs.changes.outputs.legacy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -144,7 +147,7 @@ jobs:
   modern-checks:
     needs: changes
     if: needs.changes.outputs.modern == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       db:
@@ -175,7 +178,7 @@ jobs:
   modern-ratchet:
     needs: changes
     if: needs.changes.outputs.modern_api == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       db:
@@ -237,7 +240,7 @@ jobs:
   rag-mcp:
     needs: changes
     if: needs.changes.outputs.rag == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -268,7 +271,7 @@ jobs:
   rag-eval:
     needs: changes
     if: needs.changes.outputs.rag == 'true' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
       db:
@@ -318,7 +321,7 @@ jobs:
     # rag-eval is report-only and deliberately not listed.
     needs: [changes, legacy-suite, modern-checks, modern-ratchet, rag-mcp]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: All required jobs passed or were skipped
