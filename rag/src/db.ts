@@ -64,7 +64,9 @@ export async function replaceChunks(client: pg.Client, model: string, chunks: Ch
  * any shared term can match and ts_rank_cd orders by how many and how close.
  */
 export async function keywordSearch(client: pg.Client, model: string, question: string, k: number): Promise<SearchHit[]> {
-  const terms = [...new Set(question.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [])];
+  // Split paths and camelCase before lowercasing, exactly as the SQL below does for documents.
+  const words = question.replace(/[/._-]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+  const terms = [...new Set(words.match(/[a-z0-9]{3,}/g) ?? [])];
   if (terms.length === 0) return [];
   const { rows } = await client.query<{
     path: string; kind: string; symbol: string | null; start_line: number; end_line: number; content: string; score: number;

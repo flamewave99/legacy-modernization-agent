@@ -138,3 +138,15 @@ This file becomes README material, and the Ralph loop reads its tail every itera
 - **N48 Task 6: dates are a plain `{ year, month, day }`, and year 0 is rejected.** Legacy's strict `uuuu` parsing accepts `0000/01/01`, but Postgres has no year 0 and would fail the insert, so modern returns `invalid date` instead of a 500. Years are exactly 4 digits.
 - **N49 Task 7: telephone parity goes beyond ASCII.** Probing the running legacy app showed that `@Digits` (`new BigDecimal(String)`) accepts any BMP Unicode decimal digit (`١٢٣`, `０１`, `1e٠٩`), counts precision without leading zeros (`00000000000001` passes, `0E9` passes, `0E10` fails) and rejects any fraction scale (`1.0`, `10E-1`), while `1.` passes. It rejects supplementary-plane digits like `𝟏` because Java reads UTF-16 chars. `isValidTelephone` reproduces each of these cases. The probes left 12 `zzprobe` owners in the sandbox's legacy DB, which no test searches for.
 - **N50 Task 8: Java's case-insensitive order is not `localeCompare`, and not quite lowercasing.** `String.CASE_INSENSITIVE_ORDER` maps each code point through `toUpperCase` then `toLowerCase` and compares numbers, so `é` sorts after `z` and dotless `ı` equals `i`; `compareCaseInsensitive` mirrors it (pets, specialties). The duplicate-pet check is different again: `Owner.getPet` lowercases whole strings, so `ı` vs `i` is not a duplicate there. `validatePet` also rejects an unknown type name with `invalid value` (D5), on edit too, and visit sorting puts any legacy NULL date last instead of throwing (D1).
+- **N51 Code review of milestone PR #20** (`/code-review`, 10 findings). Each was verified before fixing; 9 were in my code and 1 in the agent's.
+  - Search CLI dropped the question when `-k` was omitted, the documented usage. My manual tests always passed `-k`.
+  - MCP server's entry check compared a URL to a raw path, so it would silently not start under a path with a space.
+  - `ralph.sh`:
+    - Failures inside `$(...)` did not stop functions, and output could leak into variables. Fixed with `shopt -s inherit_errexit`; a minimal repro confirmed it.
+    - Conflict file names were lost in a subshell.
+    - Used feedback was never deleted, so a resume would redo it.
+  - Keyword search lowercased before splitting camelCase. Re-running the eval left every number unchanged, because no eval question contains an identifier. Still a real bug for agent queries.
+  - Hybrid mode rebuilt the BM25 index on every call. It is now cached per process.
+  - Parity script duplicated the ratchet's test-id logic and presented the legacy column as measured. They now share `.github/scripts/test-ids.mjs`, and the columns say "CI requires".
+  - `rag/` and `mcp/` had no CI coverage. They are now protected paths for the agent; a CI job needs the `workflow` scope and is a follow-up.
+  - The agent's date parser rejects signed 5+-digit years that legacy accepts. Recorded as accepted divergence D11 rather than replicated.

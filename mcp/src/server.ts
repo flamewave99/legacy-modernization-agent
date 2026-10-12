@@ -1,5 +1,7 @@
 // MCP server exposing semantic search over the legacy PetClinic code (stdio transport).
 // stdout carries the MCP protocol, so diagnostics go to stderr only.
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -84,8 +86,10 @@ export function createServer(search: typeof retrieve = retrieve): McpServer {
   return server;
 }
 
-// Run as a stdio server when executed directly (not when imported by tests).
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run as a stdio server when executed directly (not when imported by tests). Compare URLs, not
+// strings: import.meta.url is percent-encoded and symlink-resolved, argv[1] is neither.
+const entry = process.argv[1];
+if (entry !== undefined && import.meta.url === pathToFileURL(realpathSync(entry)).href) {
   await createServer().connect(new StdioServerTransport());
   console.error('legacy-code MCP server ready on stdio');
 }

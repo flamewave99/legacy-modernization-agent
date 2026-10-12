@@ -394,3 +394,4 @@ migration (fix_plan task 23). Each fix also gets a line in NOTES.md.
 | D8 | Pet and visit routes never check that the pet belongs to `{ownerId}` | [obs] | Keep lenient (parity), not tested |
 | D9 | Empty telephone shows a random one of two messages | [obs] | Always `must not be empty` |
 | D10 | German messages mojibake (`ungÃ¼ltiges Datum`); mixed languages for unsupported locales | [harness] | i18n not ported |
+| D11 | Dates with signed years over 4 digits (`+12345-01-01`) are accepted through java.time's ISO fallback | [harness], code review of PR #20 | Accepted divergence: modern accepts 4-digit years only. No user relies on year 12345, and modern already rejects year 0 because Postgres cannot store it |
