@@ -14,6 +14,9 @@
 # The agent writes to this same checkout, so nothing it touches is trusted here: the prompt comes
 # from origin, git runs with hooks and fsmonitor disabled, and protected paths stop the loop.
 set -Eeuo pipefail
+# Without this, a failure inside $(...) does not stop the function: it runs on, and its output
+# (which may be garbage) lands in the caller's variable.
+shopt -s inherit_errexit
 # A guardrail must never stop silently: report where an unexpected failure happened.
 trap 'log "STOP: unexpected failure (exit $?) at line $LINENO: $BASH_COMMAND"' ERR
 
@@ -24,7 +27,7 @@ main() {
   local max_attempts="${MAX_ATTEMPTS_PER_PR:-3}"
   local max_idle="${MAX_IDLE_ITERATIONS:-2}"
   local base="${BASE_BRANCH:-migration}"
-  local protected='^(ralph\.sh|PROMPT\.md|CLAUDE\.md|\.devcontainer/|\.github/|\.claude/|tests/characterization/|legacy/|docker/)'
+  local protected='^(ralph\.sh|PROMPT\.md|CLAUDE\.md|\.devcontainer/|\.github/|\.claude/|tests/characterization/|legacy/|docker/|rag/|mcp/)'
   local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/legacy-modernization-agent"
 
   if [[ "${DEVCONTAINER:-}" == "true" ]]; then
@@ -32,6 +35,7 @@ main() {
   fi
   cd "$(git rev-parse --show-toplevel)"
   mkdir -p "$state_dir" .ralph
+  CONFLICT_FILES_PATH="$state_dir/conflict-files"
   RUN_DIR="logs/ralph-$(date +%Y%m%d-%H%M%S)"
   mkdir -p "$RUN_DIR"
 
@@ -70,6 +74,8 @@ main() {
       # A failing agent run (did not start, usage limit, crash) is not an attempt at the task.
       run_agent "$base" "$RUN_DIR/iteration-$i" \
         || die "the agent exited with an error (code $?); see $RUN_DIR/iteration-$i.log. The branch and its feedback are kept for the next run."
+      # The agent has acted on the feedback; a resume after this should re-check the PR, not redo it.
+      rm -f "$FEEDBACK"
     fi
 
     # Nothing from the agent is trusted until these checks pass.
@@ -130,6 +136,9 @@ main() {
 
 FEEDBACK=".ralph/feedback.md"
 RUN_DIR=""
+# sync_with_base also runs inside $(wait_for_pr ...), a subshell, so the conflicting files go
+# through a file rather than a variable.
+CONFLICT_FILES_PATH=""
 
 # Logs go to stderr so functions can return values on stdout.
 log() { printf '[ralph %s] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
@@ -211,8 +220,7 @@ summarize_stream() {
 }
 
 # Merges origin/<base> into the current branch when it is behind. On conflict the merge is undone
-# and CONFLICT_FILES lists the files, for the agent to resolve.
-CONFLICT_FILES=""
+# and the conflicting files are written to CONFLICT_FILES_PATH, for the agent to resolve.
 sync_with_base() {
   local base="$1"
   hostgit fetch --quiet origin
@@ -221,9 +229,9 @@ sync_with_base() {
     log "Merged origin/$base into $(hostgit branch --show-current)."
     return 0
   fi
-  CONFLICT_FILES="$(hostgit diff --name-only --diff-filter=U | paste -sd' ')"
+  hostgit diff --name-only --diff-filter=U | paste -sd' ' > "$CONFLICT_FILES_PATH"
   hostgit merge --abort
-  log "Merging origin/$base conflicts in: $CONFLICT_FILES"
+  log "Merging origin/$base conflicts in: $(cat "$CONFLICT_FILES_PATH")"
   return 1
 }
 
@@ -311,7 +319,7 @@ write_conflict_feedback() {
   cat > "$FEEDBACK" <<EOF
 # Merge conflict with $base (branch $branch)
 
-\`$base\` moved on and now conflicts with this branch in: $CONFLICT_FILES
+\`$base\` moved on and now conflicts with this branch in: $(cat "$CONFLICT_FILES_PATH" 2>/dev/null)
 
 Run \`git merge origin/$base\` (already fetched), resolve every conflict keeping the intent of both
 sides, run build, lint and tests, and commit the merge. In NOTES.md keep every entry from both sides
