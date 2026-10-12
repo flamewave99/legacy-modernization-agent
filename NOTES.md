@@ -72,3 +72,9 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - `main` requires CI but no approval: a solo maintainer cannot approve their own PR, and only humans can act on GitHub anyway.
 - **N25 Test seam.** `RALPH_AGENT_CMD` replaces the agent with a scripted command. It was used to test the orchestrator's merge and CI-failure paths without spending model calls.
 - **N26 Orchestrator self-test (2026-10-12).** A scripted agent (`RALPH_AGENT_CMD`) broke CI on purpose by adding a `package.json` without a lockfile. CI failed, the failed log reached the next iteration through `.ralph/ci-feedback.md`, and the scripted fix on the same branch passed CI and auto-merged into `migration`.
+- **N27 Orchestrator guardrail tests (2026-10-12).**
+  - **CI-failure path.** A scripted agent broke CI on PR #2. The failure log reached the next iteration, the fix landed on the same branch, CI passed, and GitHub auto-merged the PR into `migration` about 2.5 minutes later. The orchestrator then removed its state and the remote branch.
+  - **Protected path.** A scripted agent edited `tests/characterization/specs/vets.spec.ts`. The loop stopped one second later. Nothing was pushed and no PR was opened.
+  - **Branch protection.** A direct push to `migration` was rejected even for the repo admin (`GH006: Protected branch update failed`).
+  - **False positive found.** The first run also stopped because of `.claude/scheduled_tasks.lock`, a runtime file Claude Code wrote on the host. Claude Code runtime files are now gitignored.
+- **N28 The human's `gh` token has no `workflow` scope during loop runs.** It was granted only to land `.github/workflows/ci.yml`, then removed. GitHub then rejects any orchestrator push that changes a workflow file, so the merge gate cannot be edited from the loop. This backs up the CI path guard with a rule GitHub enforces.
