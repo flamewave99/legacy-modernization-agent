@@ -4,3 +4,5 @@
 errors.spec.ts › unknown path returns 404
 vets.spec.ts › GET /vets.json returns the vet list as JSON
 vets.spec.ts › GET /vets.xml returns the vet list as XML
+errors.spec.ts › non-numeric owner id returns 400
+home-and-nav.spec.ts › every page keeps the same document title
