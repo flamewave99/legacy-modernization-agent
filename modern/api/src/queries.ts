@@ -83,6 +83,11 @@ export async function findOwnerById(db: pg.Pool, id: number): Promise<Owner | un
 }
 
 /** A pet by id alone: like legacy, it does not check the owner in the URL (D8). */
+export async function petExists(db: pg.Pool, id: number): Promise<boolean> {
+  const { rowCount } = await db.query('SELECT 1 FROM pets WHERE id = $1', [id]);
+  return rowCount === 1;
+}
+
 export async function findPetById(db: pg.Pool, id: number): Promise<PetWithOwner | undefined> {
   const { rows } = await db.query<PetRow>(
     'SELECT id, name, birth_date, type_id, owner_id FROM pets WHERE id = $1',

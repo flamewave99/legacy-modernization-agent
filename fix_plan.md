@@ -106,7 +106,7 @@ A missing entity returns **404** `{ error }`.
   - Use path ids only and ignore any id in the body (D7).
   - Duplicate check on create only.
   - Integration tests.
-- [ ] **13. Visit write endpoint.**
+- [x] **13. Visit write endpoint.**
   - `POST /api/owners/:ownerId/pets/:petId/visits`.
   - Integration tests, including the D1 fix (blank date gives 422 `is required`).
 

@@ -66,3 +66,20 @@ export async function updatePet(
   );
   return rowCount === 1;
 }
+
+export interface VisitFields {
+  /** `yyyy-MM-dd`. */
+  date: string;
+  description: string;
+}
+
+/** Mirrors JdbcVisitRepositoryImpl.save: insert only, there is no visit update. */
+export async function insertVisit(db: pg.Pool, petId: number, visit: VisitFields): Promise<number> {
+  const { rows } = await db.query<{ id: number }>(
+    `INSERT INTO visits (pet_id, visit_date, description) VALUES ($1, $2, $3) RETURNING id`,
+    [petId, visit.date, visit.description],
+  );
+  const id = rows[0]?.id;
+  if (id === undefined) throw new Error('INSERT INTO visits returned no id');
+  return id;
+}

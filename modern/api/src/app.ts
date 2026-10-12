@@ -5,6 +5,7 @@ import { registerLegacyVetsRoutes } from './routes/legacy-vets.js';
 import { registerOwnerWriteRoutes } from './routes/owners-write.js';
 import { registerPetWriteRoutes } from './routes/pets-write.js';
 import { registerReadRoutes } from './routes/read.js';
+import { registerVisitWriteRoutes } from './routes/visits-write.js';
 
 export interface BuildAppOptions {
   config?: Config;
@@ -21,6 +22,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerReadRoutes(app);
   registerOwnerWriteRoutes(app);
   registerPetWriteRoutes(app);
+  registerVisitWriteRoutes(app);
   registerLegacyVetsRoutes(app);
 
   return app;
