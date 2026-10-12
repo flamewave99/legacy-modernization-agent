@@ -54,3 +54,10 @@ pets.spec.ts › edit pet › empty name and birth date are required on edit
 pets.spec.ts › edit pet › renaming a pet to another pet's name of the same owner is NOT rejected
 pets.spec.ts › edit pet › saving changes updates the pet on the owner page
 pets.spec.ts › edit pet › submitting the edit form unchanged succeeds
+visits.spec.ts › an invalid date and empty description are reported together
+visits.spec.ts › empty description is rejected with "must not be empty"
+visits.spec.ts › invalid visit date shows "invalid date"
+visits.spec.ts › new visit form shows the pet, today's date and previous visits
+visits.spec.ts › submitting with the pre-filled date saves a visit dated today
+visits.spec.ts › valid visit is saved and shown on the owner page, newest first
+visits.spec.ts › visit date is also accepted as yyyy-MM-dd

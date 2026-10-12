@@ -45,7 +45,7 @@ interface PetFormProps {
 
 /** inputField.tag / selectField.tag: label, then the control and its feedback in `col-sm-10`,
  *  so an error is inside the innermost element wrapping the field. */
-function Field({
+export function Field({
   label,
   error,
   valid,

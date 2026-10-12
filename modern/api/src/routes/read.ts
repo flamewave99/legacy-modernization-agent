@@ -37,6 +37,15 @@ export function registerReadRoutes(app: FastifyInstance): void {
     },
   );
 
+  // The visit form's pet [SPEC §4.6]: `VisitController` binds `/owners/*/pets/{petId}`, so the
+  // page has no owner id to parse and looks the pet up by its id alone.
+  app.get<{ Params: { petId: string } }>('/api/pets/:petId', async (req, reply) => {
+    const petId = parseLegacyId(req.params.petId);
+    if (petId === undefined) return badId(reply, 'petId');
+    const pet = await findPetById(app.db, petId);
+    return pet ?? notFound(reply, `Pet ${String(petId)} not found`);
+  });
+
   app.get('/api/pettypes', () => findPetTypes(app.db));
 
   app.get('/api/vets', () => findVets(app.db));

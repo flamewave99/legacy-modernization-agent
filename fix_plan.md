@@ -147,7 +147,7 @@ A missing entity returns **404** `{ error }`.
   - Date input shows and accepts `yyyy-MM-dd`, and also accepts `yyyy/MM/dd` typed in.
   - Owner row.
   - Done when `pets.spec.ts` passes.
-- [ ] **22. Visit form** [SPEC §4.6].
+- [x] **22. Visit form** [SPEC §4.6].
   - Pet table with dates as `yyyy/MM/dd`.
   - Date pre-filled with today as `yyyy-MM-dd`.
   - Previous visits.
