@@ -155,7 +155,7 @@ A missing entity returns **404** `{ error }`.
 
 ## E. Finish
 
-- [ ] **23. Legacy-defect findings.**
+- [x] **23. Legacy-defect findings.**
   - Run `INCLUDE_LEGACY_BUGS=1` against modern.
   - Confirm that each failing `@legacy-bug` test corresponds to a fix listed in SPEC §8 (all defects are fixed by decision).
   - Write `FINDINGS.md`: one entry per defect D1–D10 with the legacy behavior, its root cause in the legacy code (file:line), the modern fix, and the test that shows the difference.
