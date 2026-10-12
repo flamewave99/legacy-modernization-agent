@@ -7,3 +7,25 @@ services:
       dockerfile: ../docker/legacy.Dockerfile
     ports:
       - "8080:8080"
+
+  # Postgres for the modern app. The pgvector image is plain Postgres 17 plus the
+  # vector extension, so Phase 4 (RAG) can reuse this server.
+  # Host port 5433 because 5432 is often taken by a local Postgres.
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: petclinic
+      POSTGRES_USER: petclinic
+      POSTGRES_PASSWORD: petclinic
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petclinic -d petclinic"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
