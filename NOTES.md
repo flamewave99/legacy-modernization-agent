@@ -89,3 +89,4 @@ This file becomes README material, and the Ralph loop reads its tail every itera
 - **N31 CI timing after N30.**
   - A PR that changes CI or tests runs the full gate. PR #5 took 1m30s with a cold browser cache.
   - A docs-only or modern-only PR skips the legacy suite. This PR is the docs-only measurement; its time is in the PR description.
+- **N32 Task 1: TypeScript 6, not 7.** `typescript@latest` is 7.0.2 (the characterization suite uses it), but typescript-eslint 8.71 supports only `<6.1.0`, so `modern/` pins `typescript@~6.0.3`. Prettier skips `*.md`, `docker-compose.yml` and the protected paths so `npm run lint` never asks to reformat files the loop may not or should not touch.
