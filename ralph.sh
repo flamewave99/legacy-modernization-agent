@@ -218,8 +218,12 @@ sync_with_base() {
   return 1
 }
 
+try_push() {
+  hostgit push --quiet origin "HEAD:refs/heads/$1" > /dev/null 2>&1
+}
+
 push_branch() {
-  hostgit push --quiet origin "HEAD:refs/heads/$1" > /dev/null 2>&1 || die "push of $1 failed."
+  try_push "$1" || die "push of $1 failed."
 }
 
 ensure_pr() {
@@ -245,11 +249,15 @@ wait_for_pr() {
     [[ "${info%% *}" == "MERGED" ]] && { echo merged; return; }
     [[ "${info%% *}" == "CLOSED" ]] && { echo "stuck:closed"; return; }
     merge_state="${info#* }"
-    if [[ "$merge_state" == "DIRTY" ]]; then
+    if [[ "$merge_state" == "DIRTY" || "$merge_state" == "BEHIND" ]]; then
+      # Re-check first: right after a squash-merge the PR can still read OPEN while migration
+      # already contains it, and "syncing" then would push to the branch GitHub just deleted.
+      [[ "$(gh pr view "$pr" --json state -q .state)" == "MERGED" ]] && { echo merged; return; }
       sync_with_base "$base" || { echo conflict; return; }
-      push_branch "$branch"
-    elif [[ "$merge_state" == "BEHIND" ]]; then
-      if sync_with_base "$base"; then push_branch "$branch"; else echo conflict; return; fi
+      if ! try_push "$branch"; then
+        [[ "$(gh pr view "$pr" --json state -q .state)" == "MERGED" ]] && { echo merged; return; }
+        echo "stuck:push-failed"; return
+      fi
     fi
 
     # All checks, not just the required "ci" gate: that job only appears once its dependencies finish,
