@@ -115,3 +115,6 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - Recreates the sandbox at start, so config changes take effect.
   - Streams the agent's tool calls into the log live.
   - Re-checks a resumed PR without running the agent when there is no feedback.
+- **N40 v2 self-test found two bugs in the CI-failure path.**
+  - Feedback was fetched with `gh run view --log-failed`, which refuses while other jobs in the run are still going. The PR shows `fail` as soon as one job fails, so the agent got "still in progress" instead of the error. The orchestrator now reads the failed job's own log from the jobs API, which is available immediately.
+  - Under `set -e` and `pipefail` that failed pipeline ended the orchestrator with exit 1 and no message. An `ERR` trap now reports the line and command, and the log fetch is non-fatal.
