@@ -34,6 +34,7 @@ jobs:
       legacy: ${{ steps.filter.outputs.legacy }}
       modern: ${{ steps.filter.outputs.modern }}
       modern_api: ${{ steps.filter.outputs.modern_api }}
+      rag: ${{ steps.filter.outputs.rag }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -44,7 +45,7 @@ jobs:
         if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'ralph/')
         run: |
           changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
-          blocked=$(echo "$changed" | grep -E '^(tests/characterization/|legacy/|docker/|\.github/|\.devcontainer/|\.claude/|ralph\.sh$|PROMPT\.md$|CLAUDE\.md$)' || true)
+          blocked=$(echo "$changed" | grep -E '^(tests/characterization/|legacy/|docker/|rag/|mcp/|\.github/|\.devcontainer/|\.claude/|ralph\.sh$|PROMPT\.md$|CLAUDE\.md$)' || true)
           if [ -n "$blocked" ]; then
             echo "::error::Agent branches may not change protected paths:"
             echo "$blocked"
@@ -76,16 +77,20 @@ jobs:
             else
               legacy=false
             fi
+            # The index covers legacy/, so legacy changes can move retrieval results too.
+            if echo "$changed" | grep -qE '^(rag/|mcp/|legacy/|\.github/)'; then rag=true; else rag=false; fi
           else
             legacy=true
+            rag=true
           fi
           [ -f package.json ] && modern=true || modern=false
           [ -f modern/api/package.json ] && modern_api=true || modern_api=false
-          echo "legacy=$legacy modern=$modern modern_api=$modern_api"
+          echo "legacy=$legacy modern=$modern modern_api=$modern_api rag=$rag"
           {
             echo "legacy=$legacy"
             echo "modern=$modern"
             echo "modern_api=$modern_api"
+            echo "rag=$rag"
           } >> "$GITHUB_OUTPUT"
 
   legacy-suite:
@@ -228,16 +233,97 @@ jobs:
             /tmp/modern.log
           if-no-files-found: ignore
 
+  # RAG index code and the search_legacy_code MCP server: separate packages, not root workspaces.
+  rag-mcp:
+    needs: changes
+    if: needs.changes.outputs.rag == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            rag/package-lock.json
+            mcp/package-lock.json
+
+      # The MCP stdio end-to-end test needs Ollama and an index, so it skips itself here; the
+      # rag-eval job exercises the real retrieval path.
+      - name: Typecheck and test rag/ and mcp/
+        run: |
+          for pkg in rag mcp; do
+            echo "::group::$pkg"
+            npm ci --prefix "$pkg" --no-audit --no-fund
+            npm run --prefix "$pkg" typecheck
+            npm test --prefix "$pkg"
+            echo "::endgroup::"
+          done
+
+  # Retrieval eval against a real local model. Report-only: scores go to the job summary and never
+  # fail the build. A 22-question eval should not gate merges until its run-to-run stability is
+  # known (instrument before enforcing).
+  rag-eval:
+    needs: changes
+    if: needs.changes.outputs.rag == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: petclinic
+          POSTGRES_USER: petclinic
+          POSTGRES_PASSWORD: petclinic
+        ports:
+          - 5433:5432
+        options: --health-cmd "pg_isready -U petclinic -d petclinic" --health-interval 2s --health-retries 20
+      ollama:
+        image: ollama/ollama:0.40.3
+        ports:
+          - 11434:11434
+    env:
+      RAG_DATABASE_URL: postgres://petclinic:petclinic@localhost:5433/rag
+      OLLAMA_URL: http://localhost:11434
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: rag/package-lock.json
+
+      - name: Pull the embedding model
+        run: curl -sf http://localhost:11434/api/pull -d '{"model":"nomic-embed-text","stream":false}'
+
+      - name: Index the legacy code and run the eval
+        working-directory: rag
+        run: |
+          npm ci --no-audit --no-fund
+          npm run index
+          npm run eval -- keyword:bm25 vector:nomic-embed-text hybrid-bm25:nomic-embed-text
+          npm run eval -- --holdout vector:nomic-embed-text hybrid-bm25:nomic-embed-text
+          {
+            echo "## Retrieval eval (report-only)"
+            sed -n '/^| Strategy/,/^$/p' eval/RESULTS.md
+            echo "### Held-out set"
+            sed -n '/^| Strategy/,/^$/p' eval/RESULTS-holdout.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # The single required status check. Skipped jobs count as passing; failed or cancelled ones do not.
   ci:
-    needs: [changes, legacy-suite, modern-checks, modern-ratchet]
+    # rag-eval is report-only and deliberately not listed.
+    needs: [changes, legacy-suite, modern-checks, modern-ratchet, rag-mcp]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: All required jobs passed or were skipped
         run: |
-          echo "changes=${{ needs.changes.result }} legacy-suite=${{ needs.legacy-suite.result }} modern-checks=${{ needs.modern-checks.result }} modern-ratchet=${{ needs.modern-ratchet.result }}"
+          echo "changes=${{ needs.changes.result }} legacy-suite=${{ needs.legacy-suite.result }} modern-checks=${{ needs.modern-checks.result }} modern-ratchet=${{ needs.modern-ratchet.result }} rag-mcp=${{ needs.rag-mcp.result }}"
           for r in ${{ join(needs.*.result, ' ') }}; do
             case "$r" in success|skipped) ;; *) exit 1 ;; esac
           done
