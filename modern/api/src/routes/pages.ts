@@ -45,7 +45,11 @@ export const PAGE_ROUTES: readonly {
   { path: '/owners/:ownerId/edit', ids: ['ownerId'], api: ownerApi },
   { path: '/owners/:ownerId/pets/new', ids: ['ownerId'] },
   { path: '/owners/:ownerId/pets/:petId/edit', ids: ['ownerId', 'petId'] },
-  { path: '/owners/:ownerId/pets/:petId/visits/new', ids: ['petId'] },
+  {
+    path: '/owners/:ownerId/pets/:petId/visits/new',
+    ids: ['petId'],
+    api: (p) => `/api/pets/${encodeURIComponent(p.petId ?? '')}`,
+  },
   { path: '/vets', ids: [], api: () => '/api/vets' },
   { path: '/oups', ids: [] },
 ];

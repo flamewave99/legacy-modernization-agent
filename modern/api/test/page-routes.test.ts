@@ -120,6 +120,13 @@ describe('page routes and static assets', () => {
     });
   });
 
+  it('the visit form embeds its pet, whatever the owner segment', async () => {
+    expect(preloaded((await get('/owners/abc/pets/8/visits/new')).body)).toMatchObject({
+      path: '/api/pets/8',
+      result: { ok: true, data: { id: 8, name: 'Max', owner: { firstName: 'Jean' } } },
+    });
+  });
+
   it('pages without data embed nothing', async () => {
     expect(preloaded((await get('/owners/find')).body)).toBeUndefined();
   });
