@@ -13,7 +13,9 @@
 #
 # The agent writes to this same checkout, so nothing it touches is trusted here: the prompt comes
 # from origin, git runs with hooks and fsmonitor disabled, and protected paths stop the loop.
-set -euo pipefail
+set -Eeuo pipefail
+# A guardrail must never stop silently: report where an unexpected failure happened.
+trap 'log "STOP: unexpected failure (exit $?) at line $LINENO: $BASH_COMMAND"' ERR
 
 # The body is one function, called on the last line, so bash parses the whole script before running
 # it and edits to this file during a run cannot change what runs.
@@ -268,18 +270,21 @@ wait_for_pr() {
 }
 
 write_ci_feedback() {
-  local pr="$1" branch="$2" run_id
-  # Prefer the job that actually failed over the "ci" gate that only reports it.
-  run_id="$(gh pr checks "$pr" --json name,bucket,link \
-    -q '([.[] | select(.bucket == "fail" and .name != "ci") | .link][0]) // ([.[] | select(.bucket == "fail") | .link][0]) // ""' \
-    | sed -nE 's#.*/actions/runs/([0-9]+)/.*#\1#p')"
+  local pr="$1" branch="$2" job name log
+  # The failed job's own log: available as soon as that job ends, while `gh run view --log-failed`
+  # waits for the whole run. Prefer the job that actually failed over the "ci" gate that reports it.
+  read -r job name < <(gh pr checks "$pr" --json name,bucket,link \
+    -q '([.[] | select(.bucket == "fail" and .name != "ci")][0] // [.[] | select(.bucket == "fail")][0]) // {}
+        | "\(.link // "" | capture("/job/(?<id>[0-9]+)").id // "") \(.name // "")"' || true) || true
+  log="$( [[ -n "${job:-}" ]] && gh api --allow-escape-sequences "repos/{owner}/{repo}/actions/jobs/$job/logs" 2>/dev/null \
+    | sed -E 's/\x1b\[[0-9;]*m//g; s/^[0-9T:.-]+Z //' | tail -n 300 || true)"
   {
-    echo "# CI failed on PR #$pr (branch $branch)"
+    echo "# CI failed on PR #$pr (branch $branch), job: ${name:-unknown}"
     echo
     echo "Reproduce the failure below locally, fix the cause on this branch, and commit. Do not start a new task."
     echo
     echo '```'
-    if [[ -n "$run_id" ]]; then gh run view "$run_id" --log-failed 2>&1 | tail -n 300; else echo "(no failed run log found)"; fi
+    echo "${log:-(the failed job log could not be fetched; reproduce with build, lint and tests)}"
     echo '```'
   } > "$FEEDBACK"
 }
