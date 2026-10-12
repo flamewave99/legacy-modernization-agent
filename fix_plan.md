@@ -100,7 +100,7 @@ A missing entity returns **404** `{ error }`.
   - `PUT /api/owners/:id` returns 204.
   - Both use task 7's validation and return 422 on errors.
   - Integration tests.
-- [ ] **12. Pet write endpoints.**
+- [x] **12. Pet write endpoints.**
   - `POST /api/owners/:ownerId/pets` and `PUT /api/owners/:ownerId/pets/:petId`.
   - The type is given by name; an unknown name gives `invalid value` (D5).
   - Use path ids only and ignore any id in the body (D7).
