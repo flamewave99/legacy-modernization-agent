@@ -1,4 +1,5 @@
 You are one iteration of a Ralph loop building `modern/`. Follow CLAUDE.md.
+You run inside the dev container: the legacy app is at `$LEGACY_URL`, Postgres at `$DATABASE_URL`, and there is no Docker. You are on a review branch; never switch to or commit on `main`, and never push.
 
 1. Read `fix_plan.md`, `SPEC.md` and the last entries of `NOTES.md`.
 2. Pick the FIRST unchecked task. Do only that task.

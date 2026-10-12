@@ -3,6 +3,10 @@
 One task per Ralph loop iteration, done top to bottom. Each task lists what "done" means.
 Behavior details are in `SPEC.md` (section numbers in brackets).
 
+**Where this runs.** Inside the dev container (`.devcontainer/`). There the legacy app is at
+`$LEGACY_URL` (http://legacy:8080) and Postgres at `$DATABASE_URL` (host `db`, port 5432). There is
+no Docker inside the sandbox, so `docker` commands are not available.
+
 **Conventions for every task**
 - From the repo root, `npm run build`, `npm run lint` and `npm test` must pass.
 - From task 10 on, also run the characterization suite against the modern app:
@@ -28,14 +32,12 @@ Behavior details are in `SPEC.md` (section numbers in brackets).
   - `tsconfig.base.json` with strict mode, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
   - ESLint flat config (typescript-eslint, strict) and Prettier.
   - Done when `npm run lint` and `npm run build` succeed on empty workspaces.
-- [ ] **2. Postgres service.**
-  - Add a `db` service to `docker-compose.yml`: `postgres:17`, port `5433:5432`, a named volume, and a healthcheck.
-  - Done when `docker compose up -d db` reports healthy and `psql -h localhost -p 5433 -U petclinic -c 'select 1'` works.
+- [x] **2. Postgres service.** Done during sandbox setup: `db` in `docker-compose.yml` uses `pgvector/pgvector:pg17` (Postgres 17 plus pgvector), host port 5433, with a healthcheck. In the sandbox, `psql "$DATABASE_URL" -c 'select 1'` works.
 - [ ] **3. API scaffold.**
   - `modern/api`: Fastify + TypeScript; `src/server.ts` and `src/app.ts` (`buildApp()` factory, so tests can use `inject`).
   - `GET /api/health` returns `{ status: "ok" }`.
   - Structured logging via Fastify's pino logger.
-  - Config from env: `PORT=3000`, `DATABASE_URL`.
+  - Config from env: `PORT` (default 3000) and `DATABASE_URL` (default `postgres://petclinic:petclinic@localhost:5433/petclinic`, which is the host setup; the sandbox sets its own).
   - One Vitest test using `app.inject`.
   - Done when `npm test -w modern/api` passes.
 - [ ] **4. Schema and seed.**
@@ -150,10 +152,10 @@ A missing entity returns **404** `{ error }`.
   - Write `FINDINGS.md`: one entry per defect D1–D10 with the legacy behavior, its root cause in the legacy code (file:line), the modern fix, and the test that shows the difference.
   - Do not edit the tests.
 - [ ] **24. Production compose.**
-  - Add Dockerfiles and compose services: `api` serves the web app on port 3000, with `db`.
+  - Add a Dockerfile for the modern app and a `modern` compose service: Fastify serving the web app on port 3000, using `db`.
   - Seed on first start.
-  - Done when `docker compose up` brings up legacy (8080) and modern (3000), and the full suite passes against both.
+  - The sandbox has no Docker, so the loop writes these files but cannot run them. Add a NOTES.md line asking the human reviewer to verify on the host: `docker compose up -d legacy db modern`, then the full suite against both 8080 and 3000.
 - [ ] **25. Full green run.**
-  - The full characterization suite passes against `http://localhost:3000`, and against legacy at 8080 as a regression check.
+  - The full characterization suite passes against `http://localhost:3000`, and against legacy (`BASE_URL=$LEGACY_URL`) as a regression check.
   - Build, lint and unit tests are clean.
   - Then create `DONE`.

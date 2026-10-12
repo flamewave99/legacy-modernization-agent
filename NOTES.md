@@ -40,3 +40,13 @@ This file becomes README material, and the Ralph loop reads its tail every itera
 - **N14 Modern is tested on one origin (port 3000), not the Vite dev server.** Page URLs must return 404/400 where legacy does, and Vite answers everything with 200. `PROMPT.md` was updated from 5173 to 3000.
 - **N15 All legacy defects (SPEC §8, D1–D10) are fixed in modern, not reproduced.** Decided 2026-10-12. Each one gets a write-up in `FINDINGS.md` after the migration (fix_plan task 23).
 - **N16 License.** MIT for this project's own code (`LICENSE`); `legacy/` stays Apache 2.0.
+- **N17 Postgres image is `pgvector/pgvector:pg17`.** It is plain Postgres 17 plus the vector extension, so Phase 4 (RAG) can reuse the same server. Host port 5433 (a local Postgres holds 5432).
+- **N18 Ralph sandbox design** (`.devcontainer/`, adapted from Anthropic's reference dev container).
+  - Docker Compose overlay: the agent's container joins the network with `legacy` and `db`, and reaches them by service name.
+  - No Docker socket. Mounting it would give the agent root-equivalent control of the host.
+  - Default-deny iptables firewall. Allowed: the Anthropic API, the npm registry, Claude login and telemetry domains, and the compose subnet. GitHub is deliberately blocked (the reference allows it), so the loop can commit but not push.
+  - Verified 2026-10-12: example.com and github.com are blocked; npm, `legacy:8080` and Postgres are reachable; `sudo` is limited to the firewall script; 60/60 characterization tests pass from inside the container.
+- **N19 Gotchas hit while building the sandbox.**
+  - Relative paths in an overlay compose file resolve from the *first* compose file's directory (the repo root), not the overlay's.
+  - Debian login shells reset PATH from `/etc/profile`, which hid the npm-global `claude` binary. Fixed with `/etc/profile.d/npm-global.sh`.
+- **N20 GitHub push uses HTTPS with `gh` as the credential helper** (repo-local git config). SSH failed with "Permission denied (publickey)": the host key is not registered with GitHub, or needs a passphrase. The git identity is also set in repo-local config, so commits made inside the container use the same author.
