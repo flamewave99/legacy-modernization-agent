@@ -92,7 +92,7 @@ A missing entity returns **404** `{ error }`.
   - `GET /api/vets`.
   - A non-numeric id returns 400.
   - Integration tests against the seeded DB.
-- [ ] **10. Legacy vets endpoints.**
+- [x] **10. Legacy vets endpoints.**
   - `GET /vets.json` and `GET /vets.xml` with exact bodies and content types [SPEC §7.3].
   - Done when `BASE_URL=http://localhost:3000 npm --prefix tests/characterization test -- vets.spec.ts -g "GET /vets"` passes.
 - [ ] **11. Owner write endpoints.**
