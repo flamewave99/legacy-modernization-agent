@@ -1,7 +1,8 @@
 import { useState, type SubmitEvent } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { sendJson } from '../api/client.js';
 import { useApi } from '../api/preloaded.js';
+import { useRedirect } from '../api/redirect.js';
 import { Layout } from '../layout/Layout.js';
 import { ErrorPage } from './ErrorPage.js';
 import type { OwnerWithPets } from './OwnerDetails.js';
@@ -110,7 +111,9 @@ export function OwnerForm({ isNew, initial, errors = {}, onSubmit }: OwnerFormPr
  * shows the error page.
  */
 function useSaveOwner(ownerId: string | undefined) {
-  const navigate = useNavigate();
+  const redirect = useRedirect();
+  const toOwner = (id: string) =>
+    redirect(`/owners/${id}`, `/api/owners/${encodeURIComponent(id)}`);
   return async (owner: OwnerFields): Promise<FieldErrors | undefined> => {
     const res =
       ownerId === undefined
@@ -118,9 +121,9 @@ function useSaveOwner(ownerId: string | undefined) {
         : await sendJson('PUT', `/api/owners/${encodeURIComponent(ownerId)}`, owner);
     if (res.status === 422) return (res.body as { errors: FieldErrors }).errors;
     if (res.status === 201) {
-      await navigate(`/owners/${String((res.body as { id: number }).id)}`);
+      await toOwner(String((res.body as { id: number }).id));
     } else if (ownerId !== undefined && (res.status === 204 || res.status === 404)) {
-      await navigate(`/owners/${ownerId}`);
+      await toOwner(ownerId);
     } else {
       throw new Error(`Saving owner failed with ${String(res.status)}`);
     }

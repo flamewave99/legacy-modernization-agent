@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type SubmitEvent } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { sendJson } from '../api/client.js';
 import { useApi } from '../api/preloaded.js';
+import { useRedirect } from '../api/redirect.js';
 import { Layout } from '../layout/Layout.js';
 import { ErrorPage } from './ErrorPage.js';
 import type { OwnerWithPets } from './OwnerDetails.js';
@@ -179,7 +180,7 @@ function PetFormWithErrors({
   initial: PetFields;
 }) {
   const [errors, setErrors] = useState<PetFieldErrors>({});
-  const navigate = useNavigate();
+  const redirect = useRedirect();
   const ownerPath = `/owners/${encodeURIComponent(ownerId)}`;
 
   async function save(pet: PetFields): Promise<void> {
@@ -190,7 +191,7 @@ function PetFormWithErrors({
     if (res.status === 422) {
       setErrors((res.body as { errors: PetFieldErrors }).errors);
     } else if (res.status === 201 || res.status === 204 || res.status === 404) {
-      await navigate(`/owners/${ownerId}`);
+      await redirect(ownerPath, `/api${ownerPath}`);
     } else {
       throw new Error(`Saving pet failed with ${String(res.status)}`);
     }

@@ -24,6 +24,14 @@ export function takePreloaded(path: string): Fetched<unknown> | undefined {
 }
 
 /**
+ * Makes `result` the preloaded response for `path`, so the next page that uses it renders its
+ * data on first render instead of fetching.
+ */
+export function preload(path: string, result: Fetched<unknown>): void {
+  preloaded = { path, result };
+}
+
+/**
  * GETs `path`, starting from the preloaded response when there is one, so a page loaded directly
  * renders its data before the browser's `load` event, as a server-rendered JSP does.
  * `undefined` while the request is in flight; a network failure leaves it so.
