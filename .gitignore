@@ -14,3 +14,7 @@ playwright-report/
 
 # Orchestrator feedback for the agent (CI failure logs)
 .ralph/
+
+# Claude Code runtime files
+.claude/*.lock
+.claude/settings.local.json

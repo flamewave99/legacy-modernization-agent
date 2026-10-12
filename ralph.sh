@@ -76,7 +76,7 @@ main() {
     fi
     idle=0
 
-    hostgit push --quiet origin "HEAD:refs/heads/$branch"
+    hostgit push --quiet origin "HEAD:refs/heads/$branch" > /dev/null 2>&1 || die "push of $branch failed."
     pr="$(ensure_pr "$base" "$branch")"
     gh pr merge "$pr" --auto --squash --delete-branch > /dev/null
 
@@ -196,15 +196,15 @@ completed_sections() {
 # When a section of fix_plan.md completes, propose migration -> main for human review.
 open_milestone_pr() {
   local base="$1" before="$2" after="$3" newly existing
-  newly="$(comm -13 <(echo "$before") <(echo "$after") | sed 's/^## //')"
+  newly="$(comm -13 <(echo "$before") <(echo "$after") | sed 's/^## //' | awk 'NR > 1 {printf ", "} {printf "%s", $0}')"
   [[ -n "$newly" ]] || return 0
   existing="$(gh pr list --head "$base" --base main --state open --json number -q '.[0].number')"
   if [[ -n "$existing" ]]; then
-    gh pr comment "$existing" --body "Milestone reached: $(echo "$newly" | paste -sd', ')" > /dev/null
+    gh pr comment "$existing" --body "Milestone reached: $newly" > /dev/null
   else
     gh pr create --base main --head "$base" \
-      --title "Milestone: $(echo "$newly" | paste -sd', ')" \
-      --body "fix_plan.md sections completed: $(echo "$newly" | paste -sd', '). Review, then merge with a merge commit." > /dev/null
+      --title "Milestone: $newly" \
+      --body "fix_plan.md sections completed: $newly. Review, then merge with a merge commit." > /dev/null
   fi
   log "Milestone PR updated for: $newly"
 }
