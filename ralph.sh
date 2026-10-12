@@ -67,7 +67,9 @@ main() {
       # re-check the PR instead of letting the agent start the next task on this branch.
       log "Resuming $branch; re-checking its PR before involving the agent."
     else
-      run_agent "$base" "$RUN_DIR/iteration-$i" || log "agent exited non-zero"
+      # A failing agent run (did not start, usage limit, crash) is not an attempt at the task.
+      run_agent "$base" "$RUN_DIR/iteration-$i" \
+        || die "the agent exited with an error (code $?); see $RUN_DIR/iteration-$i.log. The branch and its feedback are kept for the next run."
     fi
 
     # Nothing from the agent is trusted until these checks pass.
@@ -177,14 +179,17 @@ run_agent() {
     bash -c "$RALPH_AGENT_CMD" < /dev/null 2>&1 | tee "$log_base.log" >&2
     return "${PIPESTATUS[0]}"
   fi
-  local prompt
+  # Prompt and MCP config come from origin, not the working tree: the agent cannot tamper with
+  # them, and they exist even when resuming a branch created before they were added.
+  local prompt mcp_config
   prompt="$(hostgit show "origin/$base:PROMPT.md")"
+  mcp_config="$(hostgit show "origin/$base:.mcp.json")"
   # Stream events so progress is visible live: raw JSONL to a file, a readable line per step to the log.
   # --strict-mcp-config: the agent gets only this project's MCP server (search_legacy_code), never the
   # human's account-level connectors (e.g. Google Drive), which would reach outside the firewall
   # through the Anthropic API.
   npx --yes @devcontainers/cli exec --workspace-folder . \
-    claude -p "$prompt" --dangerously-skip-permissions --strict-mcp-config --mcp-config .mcp.json \
+    claude -p "$prompt" --dangerously-skip-permissions --strict-mcp-config --mcp-config "$mcp_config" \
     --output-format stream-json --verbose < /dev/null \
     | tee "$log_base.jsonl" | summarize_stream | tee "$log_base.log" >&2
   return "${PIPESTATUS[0]}"
