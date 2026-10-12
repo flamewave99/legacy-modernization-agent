@@ -8,6 +8,8 @@ logs/
 .devcontainer/
 .github/
 .ralph/
+rag/
+mcp/
 **/dist/
 **/coverage/
 package-lock.json
