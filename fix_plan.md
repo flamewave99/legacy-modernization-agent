@@ -65,7 +65,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
   - `src/domain/dates.ts`: `parseLegacyDate(input)` accepts strict `yyyy/MM/dd` and ISO `yyyy-MM-dd`. It rejects invalid calendar dates, single-digit parts and surrounding spaces. Blank or whitespace-only input returns a "missing" result [SPEC §6].
   - Formatters for `yyyy-MM-dd` and `yyyy/MM/dd`.
   - Table-driven tests, including every example in SPEC §6.
-- [ ] **7. Owner validation.**
+- [x] **7. Owner validation.**
   - `src/domain/owner.ts`, following SPEC §6:
     - Not-empty rules, with no trim.
     - Telephone check that mimics BigDecimal with ≤10 integer digits and no fraction. It accepts `1`, `1234567890`, `+123`, `-123`, `1e3` and rejects `abc`, `12345678901`, `123-456`.
