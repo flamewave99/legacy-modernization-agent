@@ -71,3 +71,4 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - When a `fix_plan.md` section completes, the orchestrator opens or updates a `migration` → `main` milestone PR. The human reviews and merges it with a merge commit.
   - `main` requires CI but no approval: a solo maintainer cannot approve their own PR, and only humans can act on GitHub anyway.
 - **N25 Test seam.** `RALPH_AGENT_CMD` replaces the agent with a scripted command. It was used to test the orchestrator's merge and CI-failure paths without spending model calls.
+- **N26 Orchestrator self-test (2026-10-12).** A scripted agent (`RALPH_AGENT_CMD`) broke CI on purpose by adding a `package.json` without a lockfile. CI failed, the failed log reached the next iteration through `.ralph/ci-feedback.md`, and the scripted fix on the same branch passed CI and auto-merged into `migration`.
