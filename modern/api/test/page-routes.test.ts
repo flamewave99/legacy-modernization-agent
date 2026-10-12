@@ -1,9 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { preloadTag } from '../src/routes/pages.js';
+import { resetDatabase } from '../src/reset.js';
 
 // A stand-in for modern/web/dist, so these tests do not depend on the web build.
 const webRoot = mkdtempSync(join(tmpdir(), 'petclinic-web-'));
@@ -15,6 +16,8 @@ writeFileSync(join(webRoot, 'assets', 'index-abc.js'), 'void 0;');
 
 describe('page routes and static assets', () => {
   const app = buildApp({ logger: false, webRoot });
+  // The preloaded bodies are checked against the seed, which other files' writes change.
+  beforeAll(() => resetDatabase(app.config.databaseUrl));
   afterAll(async () => {
     await app.close();
     rmSync(webRoot, { recursive: true, force: true });
