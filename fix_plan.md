@@ -128,7 +128,7 @@ A missing entity returns **404** `{ error }`.
   - `/oups` renders it with the exact message.
   - Unknown owner (API 404) renders it with HTTP 200.
   - Done when `errors.spec.ts` passes.
-- [ ] **17. Vets page** [SPEC §4.7]. Done when `vets.spec.ts` passes.
+- [x] **17. Vets page** [SPEC §4.7]. Done when `vets.spec.ts` passes.
 - [ ] **18. Find Owners and owners list** [SPEC §4.1, §4.2, §5.1].
   - Search via `?lastName=`.
   - One result navigates with replace to `/owners/{id}`; none shows the error in the field container.
