@@ -78,3 +78,4 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - **Branch protection.** A direct push to `migration` was rejected even for the repo admin (`GH006: Protected branch update failed`).
   - **False positive found.** The first run also stopped because of `.claude/scheduled_tasks.lock`, a runtime file Claude Code wrote on the host. Claude Code runtime files are now gitignored.
 - **N28 The human's `gh` token has no `workflow` scope during loop runs.** It was granted only to land `.github/workflows/ci.yml`, then removed. GitHub then rejects any orchestrator push that changes a workflow file, so the merge gate cannot be edited from the loop. This backs up the CI path guard with a rule GitHub enforces.
+- **N29 Auto-merge lags.** On PR #3, GitHub merged about 3.5 minutes after CI passed (state `CLEAN`, auto-merge enabled). The orchestrator now waits up to 15 minutes for the merge instead of 5.

@@ -163,9 +163,10 @@ wait_for_ci() {
   gh pr checks "$pr" --watch --interval 20 > /dev/null 2>&1
 }
 
+# Auto-merge can lag several minutes behind a green check; observed 3.5 minutes on PR #3.
 wait_for_merge() {
   local pr="$1" tries
-  for tries in $(seq 1 60); do
+  for tries in $(seq 1 180); do
     [[ "$(gh pr view "$pr" --json state -q .state)" == "MERGED" ]] && return 0
     sleep 5
   done
