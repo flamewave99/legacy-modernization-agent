@@ -24,6 +24,17 @@ export async function withClient<T>(databaseUrl: string, fn: (client: pg.Client)
   }
 }
 
+/** Creates the index database if it is missing (fresh volumes, new clones, CI). */
+export async function ensureDatabase(databaseUrl: string): Promise<void> {
+  const url = new URL(databaseUrl);
+  const name = decodeURIComponent(url.pathname.slice(1));
+  url.pathname = '/postgres';
+  await withClient(url.toString(), async (client) => {
+    const { rowCount } = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [name]);
+    if (rowCount === 0) await client.query(`CREATE DATABASE ${pg.escapeIdentifier(name)}`);
+  });
+}
+
 export async function ensureSchema(client: pg.Client): Promise<void> {
   await client.query(readFileSync(new URL('../db/schema.sql', import.meta.url), 'utf8'));
 }
