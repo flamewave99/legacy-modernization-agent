@@ -24,7 +24,7 @@ Snapshot from 2026-10-12. The loop is still running; live numbers are in [`docs/
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph host["Host (trusted)"]
     orch["ralph.sh orchestrator<br/>human's gh login"]
   end
