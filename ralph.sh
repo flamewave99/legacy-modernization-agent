@@ -180,8 +180,12 @@ run_agent() {
   local prompt
   prompt="$(hostgit show "origin/$base:PROMPT.md")"
   # Stream events so progress is visible live: raw JSONL to a file, a readable line per step to the log.
+  # --strict-mcp-config: the agent gets only this project's MCP server (search_legacy_code), never the
+  # human's account-level connectors (e.g. Google Drive), which would reach outside the firewall
+  # through the Anthropic API.
   npx --yes @devcontainers/cli exec --workspace-folder . \
-    claude -p "$prompt" --dangerously-skip-permissions --output-format stream-json --verbose < /dev/null \
+    claude -p "$prompt" --dangerously-skip-permissions --strict-mcp-config --mcp-config .mcp.json \
+    --output-format stream-json --verbose < /dev/null \
     | tee "$log_base.jsonl" | summarize_stream | tee "$log_base.log" >&2
   return "${PIPESTATUS[0]}"
 }
