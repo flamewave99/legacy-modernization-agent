@@ -1,5 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { SearchHit } from '../../rag/src/db.js';
@@ -73,7 +73,14 @@ describe.skipIf(!ollamaUp)('search_legacy_code (stdio, real index)', () => {
   afterAll(() => client.close());
 
   it('finds the find-owners controller method for a plain-language question', async () => {
-    await client.connect(new StdioClientTransport({ command: 'npx', args: ['tsx', 'src/server.ts'], stderr: 'ignore' }));
+    // The SDK passes only a minimal allowlist of env vars to the server (PATH, HOME, ...), so the
+    // index location must be passed explicitly, as .mcp.json does for Claude Code.
+    const env: Record<string, string> = { ...getDefaultEnvironment() };
+    for (const key of ['RAG_DATABASE_URL', 'OLLAMA_URL', 'RAG_EMBED_MODEL']) {
+      const value = process.env[key];
+      if (value) env[key] = value;
+    }
+    await client.connect(new StdioClientTransport({ command: 'npx', args: ['tsx', 'src/server.ts'], env, stderr: 'ignore' }));
     const result = await client.callTool({
       name: 'search_legacy_code',
       arguments: { query: 'what happens when a search finds exactly one owner?', k: 3 },

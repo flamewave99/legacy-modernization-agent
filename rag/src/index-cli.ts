@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { chunkFile } from './chunker.js';
 import { config, REPO_ROOT } from './config.js';
-import { ensureSchema, replaceChunks, withClient } from './db.js';
+import { ensureDatabase, ensureSchema, replaceChunks, withClient } from './db.js';
 import { defaultEmbedder } from './retrieve.js';
 
 const SOURCE = /\.(java|jsp|tag|xml|sql|properties)$/;
@@ -20,6 +20,7 @@ const embedder = defaultEmbedder();
 const started = Date.now();
 const vectors = await embedder.embedDocuments(chunks.map((c) => c.text));
 
+await ensureDatabase(config.databaseUrl);
 await withClient(config.databaseUrl, async (client) => {
   await ensureSchema(client);
   await replaceChunks(client, embedder.model, chunks, vectors);

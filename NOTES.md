@@ -101,6 +101,9 @@ This file becomes README material, and the Ralph loop reads its tail every itera
 - **N36 MCP server (Phase 5).** `search_legacy_code` over stdio, registered with `claude mcp add --scope project`. See `mcp/README.md`.
   - An end-to-end check with headless Claude, built-in tools disabled so the MCP tool was its only view of the code, found a real bug. Claude Code passes the model `structuredContent` rather than text when a tool declares an `outputSchema`, so the agent got file:line without code.
   - After the fix it answered from code alone, with exact lines (`OwnerController.java:90-93`).
+  - A throwaway copy of the sandbox (separate compose project, no host ports) found two more first-run gaps before they reached the loop:
+    - A fresh Postgres volume had no `rag` database. The indexer now creates it.
+    - The MCP SDK's stdio client passes only an env allowlist (PATH, HOME, ...) to the server it launches, so the e2e test silently fell back to localhost. `.mcp.json` already passes the variables explicitly; the test now does too.
 - **N37 Parallel work alongside the loop.** RAG and MCP were built in a separate git worktree, so the loop's checkout stayed untouched.
   - Strict up-to-date branch protection means my PRs and the loop's PRs can leave each other behind. A small watcher kept them updated (`gh pr update-branch`).
   - The orchestrator should do this itself, and a merge queue is the large-scale answer.
