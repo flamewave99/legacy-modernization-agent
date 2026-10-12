@@ -124,3 +124,7 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - Headless Claude in the recreated sandbox loaded `search_legacy_code` (project scope), searched, then confirmed the cited lines with grep as the tool description asks, and answered the duplicate-pet-name question correctly with citations.
   - The same session also loaded the human's claude.ai connectors (Claude Docs, Google Drive). Those go through the Anthropic API, which the firewall allows, so an unattended agent could have reached a personal Drive.
   - The loop now runs Claude with `--strict-mcp-config --mcp-config .mcp.json`: only the project's server, a least-privilege tool set.
+- **N43 Resuming an older branch broke the agent's start.** #17 passed `--mcp-config .mcp.json`, a working-tree path, and I had verified it only on `migration`. Resuming the Task 4 branch, which predates `.mcp.json`, made Claude refuse to start ("MCP config file not found"). The orchestrator also counted each failed start as an attempt and used up all 3 in 4 seconds.
+  - The MCP config is now read from `origin/migration` and passed as a JSON string, like the prompt, so it is tamper-proof and branch-independent.
+  - A non-zero exit from the agent now stops the loop with the log path instead of consuming attempts.
+  - Verified by running the exact agent command on the old branch.
