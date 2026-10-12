@@ -61,7 +61,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
 
 ## B. Domain logic (pure, unit-tested)
 
-- [ ] **6. Date parsing and formatting.**
+- [x] **6. Date parsing and formatting.**
   - `src/domain/dates.ts`: `parseLegacyDate(input)` accepts strict `yyyy/MM/dd` and ISO `yyyy-MM-dd`. It rejects invalid calendar dates, single-digit parts and surrounding spaces. Blank or whitespace-only input returns a "missing" result [SPEC §6].
   - Formatters for `yyyy-MM-dd` and `yyyy/MM/dd`.
   - Table-driven tests, including every example in SPEC §6.
