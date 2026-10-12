@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { getJson } from '../api/client.js';
+import { useApi } from '../api/preloaded.js';
 import { Layout } from '../layout/Layout.js';
 
 export interface Vet {
@@ -53,22 +52,6 @@ export function VetsTable({ vets }: { vets: readonly Vet[] }) {
 }
 
 export function Vets() {
-  const [vets, setVets] = useState<Vet[]>();
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    getJson<Vet[]>('/api/vets', ctrl.signal).then(
-      (res) => {
-        if (res.ok) setVets(res.data);
-      },
-      () => {
-        // Aborted on unmount, or a network failure; nothing to render.
-      },
-    );
-    return () => {
-      ctrl.abort();
-    };
-  }, []);
-
-  return <Layout menu="vets">{vets && <VetsTable vets={vets} />}</Layout>;
+  const vets = useApi<Vet[]>('/api/vets');
+  return <Layout menu="vets">{vets?.ok && <VetsTable vets={vets.data} />}</Layout>;
 }

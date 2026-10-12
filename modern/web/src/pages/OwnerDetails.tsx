@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { getJson, type Fetched } from '../api/client.js';
+import { useApi } from '../api/preloaded.js';
 import { Layout } from '../layout/Layout.js';
 import { ErrorPage } from './ErrorPage.js';
 
@@ -9,18 +8,7 @@ import { ErrorPage } from './ErrorPage.js';
 // The details themselves are task 19.
 export function OwnerDetails() {
   const { ownerId = '' } = useParams();
-  const [owner, setOwner] = useState<Fetched<unknown>>();
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    setOwner(undefined);
-    getJson(`/api/owners/${encodeURIComponent(ownerId)}`, ctrl.signal).then(setOwner, () => {
-      // Aborted on unmount, or a network failure; nothing to render.
-    });
-    return () => {
-      ctrl.abort();
-    };
-  }, [ownerId]);
+  const owner = useApi<unknown>(`/api/owners/${encodeURIComponent(ownerId)}`);
 
   if (owner && !owner.ok) return <ErrorPage message={owner.error} />;
   return <Layout menu="owners">{null}</Layout>;

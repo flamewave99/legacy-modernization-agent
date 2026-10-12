@@ -3,12 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { preloadTag } from '../src/routes/pages.js';
 
 // A stand-in for modern/web/dist, so these tests do not depend on the web build.
 const webRoot = mkdtempSync(join(tmpdir(), 'petclinic-web-'));
 mkdirSync(join(webRoot, 'resources', 'css'), { recursive: true });
 mkdirSync(join(webRoot, 'assets'));
-writeFileSync(join(webRoot, 'index.html'), '<!doctype html><title>spa</title>');
+writeFileSync(join(webRoot, 'index.html'), '<!doctype html><head><title>spa</title></head>');
 writeFileSync(join(webRoot, 'resources', 'css', 'petclinic.css'), 'body {}');
 writeFileSync(join(webRoot, 'assets', 'index-abc.js'), 'void 0;');
 
@@ -26,6 +27,7 @@ describe('page routes and static assets', () => {
     '/',
     '/owners',
     '/owners?lastName=Davis',
+    '/owners?lastName=zzz',
     '/owners/find',
     '/owners/new',
     '/owners/1',
@@ -67,6 +69,55 @@ describe('page routes and static assets', () => {
     '/resources/nope.css',
   ])('%s returns 404', async (url) => {
     expect((await get(url)).statusCode).toBe(404);
+  });
+
+  it('redirects a search with exactly one match to that owner', async () => {
+    const res = await get('/owners?lastName=frank');
+    expect(res.statusCode).toBe(302);
+    expect(res.headers.location).toBe('/owners/1');
+  });
+
+  // The SPA reads these with `takePreloaded`, keyed by the API path it would fetch.
+  const preloaded = (body: string): unknown => {
+    const json = /<script id="preloaded" type="application\/json">(.*?)<\/script><\/head>/.exec(
+      body,
+    )?.[1];
+    return json === undefined ? undefined : JSON.parse(json);
+  };
+
+  it.each([
+    ['/owners', '/api/owners?lastName=', 10],
+    ['/owners?lastName=Davis', '/api/owners?lastName=Davis', 2],
+    ['/owners?lastName=a+b&lastName=c', '/api/owners?lastName=a+b%2Cc', 0],
+    ['/vets', '/api/vets', 6],
+  ])('%s embeds the response of %s', async (url, path, length) => {
+    const res = await get(url);
+    expect(res.headers['content-type']).toBe('text/html; charset=utf-8');
+    expect(preloaded(res.body)).toMatchObject({ path, result: { ok: true } });
+    expect((preloaded(res.body) as { result: { data: unknown[] } }).result.data).toHaveLength(
+      length,
+    );
+  });
+
+  it('embeds an owner, and the 404 of an unknown one', async () => {
+    expect(preloaded((await get('/owners/+1')).body)).toMatchObject({
+      path: '/api/owners/%2B1',
+      result: { ok: true, data: { id: 1, firstName: 'George' } },
+    });
+    expect(preloaded((await get('/owners/999999')).body)).toEqual({
+      path: '/api/owners/999999',
+      result: { ok: false, error: 'Owner 999999 not found' },
+    });
+  });
+
+  it('pages without data embed nothing', async () => {
+    expect(preloaded((await get('/owners/find')).body)).toBeUndefined();
+  });
+
+  it('escapes < so data cannot close the script element', () => {
+    expect(preloadTag('/x', { s: '</script><b>' })).toBe(
+      '<script id="preloaded" type="application/json">{"path":"/x","result":{"s":"\\u003c/script>\\u003cb>"}}</script>',
+    );
   });
 
   it('serves copied legacy resources and built assets', async () => {
