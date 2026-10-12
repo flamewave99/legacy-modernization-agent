@@ -6,3 +6,4 @@ vets.spec.ts › GET /vets.json returns the vet list as JSON
 vets.spec.ts › GET /vets.xml returns the vet list as XML
 errors.spec.ts › non-numeric owner id returns 400
 home-and-nav.spec.ts › every page keeps the same document title
+home-and-nav.spec.ts › welcome page shows heading, image and title

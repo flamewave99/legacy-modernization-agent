@@ -119,7 +119,7 @@ A missing entity returns **404** `{ error }`.
   - Fastify (`@fastify/static`) serves `dist` and `/resources/*`.
   - Page-route status rules [SPEC §1]: known patterns return `index.html` with 200, a non-numeric id returns 400, anything else returns 404.
   - Done when `errors.spec.ts` tests "unknown path returns 404" and "non-numeric owner id returns 400" pass.
-- [ ] **15. Layout and welcome page.**
+- [x] **15. Layout and welcome page.**
   - Document title, navbar (4 links + brand), Pivotal footer image [SPEC §2].
   - Welcome page [SPEC §3].
   - Done when `home-and-nav.spec.ts` passes, except tests that need pages not built yet.
