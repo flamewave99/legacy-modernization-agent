@@ -1,6 +1,6 @@
 // Read endpoints [fix_plan task 9]. A malformed id is 400 and a missing entity is 404 { error }.
 
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { parseLegacyId } from '../domain/ids.js';
 import {
   findOwnerById,
@@ -9,6 +9,7 @@ import {
   findPetTypes,
   findVets,
 } from '../queries.js';
+import { badId, notFound } from './replies.js';
 
 export function registerReadRoutes(app: FastifyInstance): void {
   app.get<{ Querystring: { lastName?: string | string[] } }>('/api/owners', async (req) => {
@@ -39,12 +40,4 @@ export function registerReadRoutes(app: FastifyInstance): void {
   app.get('/api/pettypes', () => findPetTypes(app.db));
 
   app.get('/api/vets', () => findVets(app.db));
-}
-
-function badId(reply: FastifyReply, name: string): FastifyReply {
-  return reply.code(400).send({ error: `Invalid ${name}` });
-}
-
-function notFound(reply: FastifyReply, error: string): FastifyReply {
-  return reply.code(404).send({ error });
 }

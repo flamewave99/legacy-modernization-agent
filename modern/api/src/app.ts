@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import { loadConfig, type Config } from './config.js';
 import { registerDb } from './db.js';
 import { registerLegacyVetsRoutes } from './routes/legacy-vets.js';
+import { registerOwnerWriteRoutes } from './routes/owners-write.js';
 import { registerReadRoutes } from './routes/read.js';
 
 export interface BuildAppOptions {
@@ -17,6 +18,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 
   app.get('/api/health', () => ({ status: 'ok' }));
   registerReadRoutes(app);
+  registerOwnerWriteRoutes(app);
   registerLegacyVetsRoutes(app);
 
   return app;
