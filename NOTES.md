@@ -92,3 +92,15 @@ This file becomes README material, and the Ralph loop reads its tail every itera
 - **N32 Task 1: TypeScript 6, not 7.** `typescript@latest` is 7.0.2 (the characterization suite uses it), but typescript-eslint 8.71 supports only `<6.1.0`, so `modern/` pins `typescript@~6.0.3`. Prettier skips `*.md`, `docker-compose.yml` and the protected paths so `npm run lint` never asks to reformat files the loop may not or should not touch.
 - **N33 Task 3: two tsconfigs in `modern/api`.** typescript-eslint's project service uses the nearest `tsconfig.json`, so that file covers `src`, `test` and `vitest.config.ts` with `noEmit` (used by `typecheck`), and `tsconfig.build.json` emits only `src` to `dist`. `@types/node` is pinned to `^24` to match the Node 24 runtime (latest is 26). `npm start` runs the compiled `dist/server.js`, so build first.
 - **N34 Ratchet CI runs only the listed tests.** Running all 60 characterization tests against a half-built modern app made each agent PR wait 7+ minutes while failing tests timed out (PR #8). CI now runs `--test-list modern/ratchet.txt`, which costs nothing while the list is empty and only covers passing tests later. Finding newly passing tests stays with the agent, locally, as fix_plan.md's conventions already say. CI enforces, the agent discovers.
+- **N35 RAG over legacy code (Phase 4).** See `rag/README.md`.
+  - Local embeddings: `nomic-embed-text` served by an Ollama container on the compose network. No API key, and the sandbox reaches it without internet access.
+  - Java is chunked per method, with its javadoc and annotations, plus a condensed type chunk: 102 files become 325 chunks.
+  - pgvector, one row per chunk per model, so the eval can compare models.
+  - Running the chunker over real files found three bugs before any test was written: annotation `(` taken as the method name, "interface" in javadoc taken as the type name, and an unnamed nested enum.
+  - First anecdotes: 4/6 questions retrieved well. The misses were "validation" (that word is absent from the validation code) and "default database".
+- **N36 MCP server (Phase 5).** `search_legacy_code` over stdio, registered with `claude mcp add --scope project`. See `mcp/README.md`.
+  - An end-to-end check with headless Claude, built-in tools disabled so the MCP tool was its only view of the code, found a real bug. Claude Code passes the model `structuredContent` rather than text when a tool declares an `outputSchema`, so the agent got file:line without code.
+  - After the fix it answered from code alone, with exact lines (`OwnerController.java:90-93`).
+- **N37 Parallel work alongside the loop.** RAG and MCP were built in a separate git worktree, so the loop's checkout stayed untouched.
+  - Strict up-to-date branch protection means my PRs and the loop's PRs can leave each other behind. A small watcher kept them updated (`gh pr update-branch`).
+  - The orchestrator should do this itself, and a merge queue is the large-scale answer.

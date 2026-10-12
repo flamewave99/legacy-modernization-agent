@@ -65,6 +65,8 @@ npx @devcontainers/cli exec --workspace-folder . claude   # first time only: log
 | `.devcontainer/` | Sandbox for the agent (firewall, no Docker socket, read-only git config) |
 | `.github/workflows/ci.yml` | Merge gate: characterization suite, build/lint/tests, ratchet, path guard |
 | `modern/ratchet.txt` | Characterization tests already passing against the modern app (may only grow) |
+| `rag/` | Chunker, local embeddings (Ollama), pgvector index, `search` and `ask` CLIs |
+| `mcp/` | MCP server exposing `search_legacy_code` to Claude Code and the loop's agent |
 | `tests/characterization/` | Behavior tests: the source of truth |
 | `SPEC.md` | Behavior spec derived from the legacy code |
 | `fix_plan.md` | Ordered task list for the rewrite |
