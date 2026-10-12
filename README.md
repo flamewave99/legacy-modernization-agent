@@ -33,20 +33,27 @@ INCLUDE_LEGACY_BUGS=1 npm test         # also run tests that pin known legacy de
 BASE_URL=http://localhost:3000 npm test   # later: against the modern app
 ```
 
-## Run the Ralph loop (sandboxed)
+## Run the Ralph loop
 
-The loop runs Claude Code with permission prompts skipped, so it only runs inside the dev container in `.devcontainer/`:
-- **Outbound firewall** (default deny). Only the Anthropic API, the npm registry and the compose network (legacy app, Postgres) are reachable. GitHub is blocked, so the agent can commit but not push.
-- **No Docker socket** inside the container, so the agent cannot control the host's Docker.
-- **Non-root user.** The only sudo rule allows running the firewall script.
-- **`ralph.sh` refuses to run outside the container**, and it works on a `ralph/<timestamp>` branch, never on `main`. A human reviews the branch, then pushes and merges it from the host.
+Three roles, separated so the autonomous part never holds credentials:
+
+| Role | Runs | Can do |
+|---|---|---|
+| **Agent**: Claude Code, permission prompts skipped | In the dev container | Edit files and commit locally. No GitHub access, no Docker socket, outbound firewall, read-only git config and hooks |
+| **Orchestrator**: `ralph.sh` | On the host, with your `gh` login | Push the agent's branch, open a PR into `migration` with auto-merge, wait for CI, feed CI failures back to the agent, open milestone PRs |
+| **Human** | GitHub | Review milestone PRs (`migration` → `main`) and merge them |
+
+Branch protection makes GitHub, not the agent, enforce the rules:
+- `migration` only accepts PRs whose CI passed (squash, linear history).
+- `main` only accepts PRs whose CI passed.
+- Nobody can force-push or delete either branch.
+
+CI also rejects agent branches that touch the tests, CI, sandbox or prompt files, or that shrink the ratchet. The ratchet (`modern/ratchet.txt`) lists characterization tests that already pass against the modern app.
 
 ```bash
-# VS Code: "Dev Containers: Reopen in Container". Or with the CLI:
 npx @devcontainers/cli up --workspace-folder .
-npx @devcontainers/cli exec --workspace-folder . bash
-claude            # first time only: log in, then exit
-./ralph.sh        # MAX_ITERATIONS=25 by default
+npx @devcontainers/cli exec --workspace-folder . claude   # first time only: log in, then /exit
+./ralph.sh                                                 # on the host; MAX_ITERATIONS=25
 ```
 
 ## Layout
@@ -55,7 +62,9 @@ claude            # first time only: log in, then exit
 |---|---|
 | `legacy/` | Vendored upstream app (Apache 2.0), unmodified |
 | `docker/`, `docker-compose.yml` | Legacy app and Postgres containers |
-| `.devcontainer/` | Sandbox for the Ralph loop (firewall, no Docker socket) |
+| `.devcontainer/` | Sandbox for the agent (firewall, no Docker socket, read-only git config) |
+| `.github/workflows/ci.yml` | Merge gate: characterization suite, build/lint/tests, ratchet, path guard |
+| `modern/ratchet.txt` | Characterization tests already passing against the modern app (may only grow) |
 | `tests/characterization/` | Behavior tests: the source of truth |
 | `SPEC.md` | Behavior spec derived from the legacy code |
 | `fix_plan.md` | Ordered task list for the rewrite |

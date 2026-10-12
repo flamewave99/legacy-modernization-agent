@@ -7,12 +7,21 @@ Behavior details are in `SPEC.md` (section numbers in brackets).
 `$LEGACY_URL` (http://legacy:8080) and Postgres at `$DATABASE_URL` (host `db`, port 5432). There is
 no Docker inside the sandbox, so `docker` commands are not available.
 
+**How work lands.** The agent commits on a `ralph/...` branch. The host orchestrator pushes it and
+opens a PR into `migration` with auto-merge. CI (`.github/workflows/ci.yml`) must pass: the
+characterization suite against legacy, build, lint and unit tests, and the ratchet against modern.
+If CI fails, the failure log appears in `.ralph/ci-feedback.md` for the next iteration to fix.
+
 **Conventions for every task**
 - From the repo root, `npm run build`, `npm run lint` and `npm test` must pass.
-- From task 10 on, also run the characterization suite against the modern app:
-  `npm run start -w modern/api` (port 3000), then
-  `BASE_URL=http://localhost:3000 npm --prefix tests/characterization test` (append `-- <spec file>` to run one file).
-  Earlier spec files that already passed must keep passing. A task is not done if it breaks one.
+- Once `modern/api` serves on port 3000 (`npm run start -w modern/api`), run the characterization suite against it and update the **ratchet**:
+  ```
+  cd tests/characterization
+  BASE_URL=http://localhost:3000 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/modern.json npx playwright test --reporter=json,line
+  node ../../.github/scripts/check-ratchet.mjs /tmp/modern.json ../../modern/ratchet.txt
+  ```
+  - Append every line it lists under "Passing but not yet in modern/ratchet.txt" to `modern/ratchet.txt`.
+  - Never remove a line. CI fails if a listed test stops passing, so a task is not done if it breaks one.
 - Never edit `tests/characterization/` to make modern pass (CLAUDE.md).
 - Tick the box, commit with a message naming the task number, and add one line to `NOTES.md` if anything was surprising.
 

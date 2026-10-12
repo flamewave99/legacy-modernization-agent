@@ -50,3 +50,24 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - Relative paths in an overlay compose file resolve from the *first* compose file's directory (the repo root), not the overlay's.
   - Debian login shells reset PATH from `/etc/profile`, which hid the npm-global `claude` binary. Fixed with `/etc/profile.d/npm-global.sh`.
 - **N20 GitHub push uses HTTPS with `gh` as the credential helper** (repo-local git config). SSH failed with "Permission denied (publickey)": the host key is not registered with GitHub, or needs a passphrase. The git identity is also set in repo-local config, so commits made inside the container use the same author.
+- **N21 The agent never holds GitHub credentials** (decided 2026-10-12).
+  - Goal: hands-off merging. Tried first: give the agent a bot token inside the sandbox. Claude Code's own safety check blocked writing that credential setup.
+  - Chosen instead: split roles. The agent (sandbox) only edits and commits. The host orchestrator (`ralph.sh`, the human's `gh` login) pushes, opens a PR into `migration` with auto-merge, waits for CI, and feeds failures back through `.ralph/ci-feedback.md`.
+  - Same autonomy, smaller blast radius. The sandbox firewall keeps blocking GitHub.
+- **N22 Threat model for the shared checkout.** The agent writes to the same working tree the host orchestrator runs git in. Mitigations:
+  - The prompt is read from `origin/migration`, not the working tree.
+  - `ralph.sh` runs as one function, so bash has parsed it all before any edit could land.
+  - Host git runs with `core.hooksPath=/dev/null` and `core.fsmonitor=false`.
+  - `.git/config` and `.git/hooks` are mounted read-only in the container. Verified: config and hook writes fail, commits work.
+  - The loop stops if protected paths change or the agent leaves the branch or uncommitted work.
+- **N23 Merge gate** (`.github/workflows/ci.yml`). Every PR runs:
+  - the characterization suite against legacy, including `@legacy-bug` tests;
+  - build, lint and unit tests for modern;
+  - the **ratchet**: tests listed in `modern/ratchet.txt` must pass against modern, and lines may never be removed.
+
+  Agent branches (`ralph/*`) may not touch tests, CI, sandbox or prompt files. The path guard keys on the branch prefix. It guards against mistakes, not a determined adversary. The real boundary is that the agent cannot push at all.
+- **N24 Integration-branch model.**
+  - Agent PRs auto-merge into `migration` (squash, linear history, CI required).
+  - When a `fix_plan.md` section completes, the orchestrator opens or updates a `migration` → `main` milestone PR. The human reviews and merges it with a merge commit.
+  - `main` requires CI but no approval: a solo maintainer cannot approve their own PR, and only humans can act on GitHub anyway.
+- **N25 Test seam.** `RALPH_AGENT_CMD` replaces the agent with a scripted command. It was used to test the orchestrator's merge and CI-failure paths without spending model calls.
