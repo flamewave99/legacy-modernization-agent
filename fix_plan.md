@@ -72,7 +72,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
     - An empty telephone gives `must not be empty` (D9).
   - Returns `{ field: message }` with one message per field.
   - Unit tests.
-- [ ] **8. Pet and visit validation and sorting.**
+- [x] **8. Pet and visit validation and sorting.**
   - `src/domain/pet.ts` and `src/domain/visit.ts`:
     - Pet required rules, `invalid date`, and the duplicate-name rule on create only, case-insensitive [SPEC §5.3].
     - Visit description `must not be empty`; date `invalid date`; a blank visit date gives `is required` (D1 fix).
