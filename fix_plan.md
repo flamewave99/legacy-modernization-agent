@@ -84,7 +84,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
 All JSON routes live under `/api`. Validation failures return **422** `{ errors: { field: message } }`.
 A missing entity returns **404** `{ error }`.
 
-- [ ] **9. Read endpoints.**
+- [x] **9. Read endpoints.**
   - `GET /api/owners?lastName=`: ILIKE prefix, unescaped, `ORDER BY id`, pets included [SPEC §5.1].
   - `GET /api/owners/:id`: owner with sorted pets, each with type name and sorted visits.
   - `GET /api/pettypes`.
