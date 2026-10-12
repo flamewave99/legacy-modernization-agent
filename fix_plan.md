@@ -42,7 +42,7 @@ If CI fails, the failure log appears in `.ralph/ci-feedback.md` for the next ite
   - ESLint flat config (typescript-eslint, strict) and Prettier.
   - Done when `npm run lint` and `npm run build` succeed on empty workspaces.
 - [x] **2. Postgres service.** Done during sandbox setup: `db` in `docker-compose.yml` uses `pgvector/pgvector:pg17` (Postgres 17 plus pgvector), host port 5433, with a healthcheck. In the sandbox, `psql "$DATABASE_URL" -c 'select 1'` works.
-- [ ] **3. API scaffold.**
+- [x] **3. API scaffold.**
   - `modern/api`: Fastify + TypeScript; `src/server.ts` and `src/app.ts` (`buildApp()` factory, so tests can use `inject`).
   - `GET /api/health` returns `{ status: "ok" }`.
   - Structured logging via Fastify's pino logger.
