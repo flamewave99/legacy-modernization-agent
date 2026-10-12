@@ -86,3 +86,6 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - Postgres as a service container.
   - `legacy/` and `docker/` became protected paths, which is what makes skipping the legacy suite on agent PRs safe.
   - At thousands of PRs a day, the next steps would be a merge queue (batching instead of rebase-and-rerun), affected-only builds (Nx/Turborepo), test sharding and larger runners.
+- **N31 CI timing after N30.**
+  - A PR that changes CI or tests runs the full gate. PR #5 took 1m30s with a cold browser cache.
+  - A docs-only or modern-only PR skips the legacy suite. This PR is the docs-only measurement; its time is in the PR description.
