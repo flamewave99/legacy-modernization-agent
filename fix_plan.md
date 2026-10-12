@@ -136,7 +136,7 @@ A missing entity returns **404** `{ error }`.
 - [x] **19. Owner details page** [SPEC §4.3].
   - Keep the label/value text order exactly.
   - Done when the `owner details` tests in `owners.spec.ts` pass (the escaping test needs task 20).
-- [ ] **20. Owner form, new and edit** [SPEC §4.4].
+- [x] **20. Owner form, new and edit** [SPEC §4.4].
   - Shared `OwnerForm`.
   - The field `name` attributes are the contract.
   - Each error renders inside the field's wrapper element.
