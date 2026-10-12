@@ -1,0 +1,38 @@
+name: Set up characterization suite
+description: Node, npm deps and Playwright Chromium for tests/characterization, with caching.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: tests/characterization/package-lock.json
+
+    - name: Install suite dependencies
+      shell: bash
+      working-directory: tests/characterization
+      run: npm ci
+
+    # The browser binary is cached by Playwright version; its OS libraries come from apt each run.
+    - name: Cache Playwright browser
+      id: pw-cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('tests/characterization/package-lock.json') }}
+
+    - name: Install Playwright Chromium
+      shell: bash
+      working-directory: tests/characterization
+      run: |
+        if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+          npx playwright install-deps chromium
+        else
+          npx playwright install --with-deps chromium
+        fi
+
+    - name: Typecheck suite
+      shell: bash
+      working-directory: tests/characterization
+      run: npm run typecheck

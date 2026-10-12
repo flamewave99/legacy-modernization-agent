@@ -17,5 +17,5 @@ Portfolio project: convert a legacy Spring MVC/JSP app (`legacy/`) into a modern
 - Commit messages and PR descriptions carry no AI attribution: no `Co-Authored-By` trailers, session links or "Generated with" lines.
 - Each loop iteration: one task from `fix_plan.md`, then build, lint, test, commit, tick the task.
 - Agents commit on the branch they are given and never push, merge, switch branches or change git config. The host orchestrator (`ralph.sh`) pushes, opens the PR into `migration`, and GitHub merges it only when CI passes.
-- Agents never edit `tests/characterization/`, `.github/`, `.devcontainer/`, `.claude/`, `ralph.sh`, `PROMPT.md` or `CLAUDE.md`, and never remove lines from `modern/ratchet.txt`. CI rejects agent branches that do.
+- Agents never edit `tests/characterization/`, `legacy/`, `docker/`, `.github/`, `.devcontainer/`, `.claude/`, `ralph.sh`, `PROMPT.md` or `CLAUDE.md`, and never remove lines from `modern/ratchet.txt`. CI rejects agent branches that do.
 - Record surprises and decisions in `NOTES.md` (it becomes README material).

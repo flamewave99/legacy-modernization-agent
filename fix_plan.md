@@ -161,7 +161,7 @@ A missing entity returns **404** `{ error }`.
   - Write `FINDINGS.md`: one entry per defect D1–D10 with the legacy behavior, its root cause in the legacy code (file:line), the modern fix, and the test that shows the difference.
   - Do not edit the tests.
 - [ ] **24. Production compose.**
-  - Add a Dockerfile for the modern app and a `modern` compose service: Fastify serving the web app on port 3000, using `db`.
+  - Add `modern/Dockerfile` (not under `docker/`, which is protected) and a `modern` compose service: Fastify serving the web app on port 3000, using `db`.
   - Seed on first start.
   - The sandbox has no Docker, so the loop writes these files but cannot run them. Add a NOTES.md line asking the human reviewer to verify on the host: `docker compose up -d legacy db modern`, then the full suite against both 8080 and 3000.
 - [ ] **25. Full green run.**
