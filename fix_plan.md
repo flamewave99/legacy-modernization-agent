@@ -123,7 +123,7 @@ A missing entity returns **404** `{ error }`.
   - Document title, navbar (4 links + brand), Pivotal footer image [SPEC §2].
   - Welcome page [SPEC §3].
   - Done when `home-and-nav.spec.ts` passes, except tests that need pages not built yet.
-- [ ] **16. Error page and `/oups`.**
+- [x] **16. Error page and `/oups`.**
   - Reusable `ErrorPage` component [SPEC §4.8].
   - `/oups` renders it with the exact message.
   - Unknown owner (API 404) renders it with HTTP 200.
