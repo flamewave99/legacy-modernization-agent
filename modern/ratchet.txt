@@ -40,3 +40,17 @@ owners.spec.ts › edit owner › editing keeps the owner's pets
 owners.spec.ts › edit owner › invalid edit is rejected and the change is not saved
 owners.spec.ts › edit owner › saving changes redirects to the owner page with new values
 owners.spec.ts › owner details › output is HTML-escaped
+pets.spec.ts › add pet › a future birth date is accepted
+pets.spec.ts › add pet › all fields empty: name, birth date and type are required
+pets.spec.ts › add pet › birth date is also accepted as yyyy-MM-dd
+pets.spec.ts › add pet › duplicate pet name for the same owner is rejected, ignoring case
+pets.spec.ts › add pet › invalid birth date shows "invalid date"
+pets.spec.ts › add pet › new pet form shows owner, empty fields and pet types in name order
+pets.spec.ts › add pet › pets are listed by name, case-insensitively
+pets.spec.ts › add pet › the same pet name is allowed for different owners
+pets.spec.ts › add pet › valid pet is added and shown on the owner page
+pets.spec.ts › edit pet › edit form is pre-filled, titled "Pet", with "Update Pet" button
+pets.spec.ts › edit pet › empty name and birth date are required on edit
+pets.spec.ts › edit pet › renaming a pet to another pet's name of the same owner is NOT rejected
+pets.spec.ts › edit pet › saving changes updates the pet on the owner page
+pets.spec.ts › edit pet › submitting the edit form unchanged succeeds

@@ -3,6 +3,7 @@ import { FindOwners, OwnersSearch } from './pages/FindOwners.js';
 import { Oups } from './pages/Oups.js';
 import { OwnerDetails } from './pages/OwnerDetails.js';
 import { EditOwner, NewOwner } from './pages/OwnerForm.js';
+import { EditPet, NewPet } from './pages/PetForm.js';
 import { Vets } from './pages/Vets.js';
 import { Welcome } from './pages/Welcome.js';
 
@@ -17,6 +18,8 @@ export function App() {
       <Route path="/owners/new" element={<NewOwner />} />
       <Route path="/owners/:ownerId" element={<OwnerDetails />} />
       <Route path="/owners/:ownerId/edit" element={<EditOwner />} />
+      <Route path="/owners/:ownerId/pets/new" element={<NewPet />} />
+      <Route path="/owners/:ownerId/pets/:petId/edit" element={<EditPet />} />
       <Route path="/vets" element={<Vets />} />
       <Route path="/oups" element={<Oups />} />
     </Routes>
