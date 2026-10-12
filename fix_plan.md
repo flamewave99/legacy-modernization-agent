@@ -36,7 +36,7 @@ If CI fails, the failure log appears in `.ralph/ci-feedback.md` for the next ite
 
 ## A. Foundations
 
-- [ ] **1. Root workspace and tooling.**
+- [x] **1. Root workspace and tooling.**
   - Root `package.json` with workspaces `modern/api` and `modern/web`, plus scripts `build`, `lint`, `test`, `typecheck` that run across workspaces.
   - `tsconfig.base.json` with strict mode, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
   - ESLint flat config (typescript-eslint, strict) and Prettier.
