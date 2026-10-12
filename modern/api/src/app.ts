@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { loadConfig, type Config } from './config.js';
 import { registerDb } from './db.js';
+import { registerReadRoutes } from './routes/read.js';
 
 export interface BuildAppOptions {
   config?: Config;
@@ -14,6 +15,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerDb(app, config.databaseUrl);
 
   app.get('/api/health', () => ({ status: 'ok' }));
+  registerReadRoutes(app);
 
   return app;
 }
