@@ -112,7 +112,7 @@ A missing entity returns **404** `{ error }`.
 
 ## D. Web app
 
-- [ ] **14. Web scaffold and static serving.**
+- [x] **14. Web scaffold and static serving.**
   - `modern/web`: Vite + React + TypeScript + React Router, built to `modern/web/dist`.
   - Copy into `modern/web/public/resources/`: `petclinic.css`, the fonts and the images from `legacy/src/main/webapp/resources/`.
   - Get Font Awesome 4.7 from npm (`font-awesome@4.7.0`).

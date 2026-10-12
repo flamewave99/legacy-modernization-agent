@@ -12,6 +12,8 @@ rag/
 mcp/
 **/dist/
 **/coverage/
+# Copied verbatim from legacy/ so the look matches.
+modern/web/public/resources/
 package-lock.json
 *.md
 docker-compose.yml
