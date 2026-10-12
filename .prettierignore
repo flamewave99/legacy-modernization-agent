@@ -1,0 +1,17 @@
+# Frozen, protected or generated paths. Prettier formats modern/ and root config files only.
+legacy/
+tests/
+docker/
+private/
+logs/
+.claude/
+.devcontainer/
+.github/
+.ralph/
+rag/
+mcp/
+**/dist/
+**/coverage/
+package-lock.json
+*.md
+docker-compose.yml

@@ -10,7 +10,7 @@ no Docker inside the sandbox, so `docker` commands are not available.
 **How work lands.** The agent commits on a `ralph/...` branch. The host orchestrator pushes it and
 opens a PR into `migration` with auto-merge. CI (`.github/workflows/ci.yml`) must pass: the
 characterization suite against legacy, build, lint and unit tests, and the ratchet against modern.
-If CI fails, the failure log appears in `.ralph/ci-feedback.md` for the next iteration to fix.
+If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the next iteration what to fix.
 
 **Conventions for every task**
 - From the repo root, `npm run build`, `npm run lint` and `npm test` must pass.
@@ -36,43 +36,43 @@ If CI fails, the failure log appears in `.ralph/ci-feedback.md` for the next ite
 
 ## A. Foundations
 
-- [ ] **1. Root workspace and tooling.**
+- [x] **1. Root workspace and tooling.**
   - Root `package.json` with workspaces `modern/api` and `modern/web`, plus scripts `build`, `lint`, `test`, `typecheck` that run across workspaces.
   - `tsconfig.base.json` with strict mode, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
   - ESLint flat config (typescript-eslint, strict) and Prettier.
   - Done when `npm run lint` and `npm run build` succeed on empty workspaces.
 - [x] **2. Postgres service.** Done during sandbox setup: `db` in `docker-compose.yml` uses `pgvector/pgvector:pg17` (Postgres 17 plus pgvector), host port 5433, with a healthcheck. In the sandbox, `psql "$DATABASE_URL" -c 'select 1'` works.
-- [ ] **3. API scaffold.**
+- [x] **3. API scaffold.**
   - `modern/api`: Fastify + TypeScript; `src/server.ts` and `src/app.ts` (`buildApp()` factory, so tests can use `inject`).
   - `GET /api/health` returns `{ status: "ok" }`.
   - Structured logging via Fastify's pino logger.
   - Config from env: `PORT` (default 3000) and `DATABASE_URL` (default `postgres://petclinic:petclinic@localhost:5433/petclinic`, which is the host setup; the sandbox sets its own).
   - One Vitest test using `app.inject`.
   - Done when `npm test -w modern/api` passes.
-- [ ] **4. Schema and seed.**
+- [x] **4. Schema and seed.**
   - `modern/api/db/schema.sql` [SPEC §7.1] and `modern/api/db/seed.sql` with the **H2** seed values [SPEC §7.2].
   - Set sequences with `setval` to `max(id)`.
   - Script `npm run db:reset -w modern/api` drops, recreates and seeds.
   - Integration test: after a reset there are 10 owners, 13 pets, 4 visits, 6 vets and 6 types.
-- [ ] **5. DB module.**
+- [x] **5. DB module.**
   - `src/db.ts`: a `pg.Pool` built from `DATABASE_URL`, closed on Fastify `onClose`.
   - Typed row interfaces for every table.
   - Done when there is a passing integration test that queries `types` ordered by name and gets bird, cat, dog, hamster, lizard, snake.
 
 ## B. Domain logic (pure, unit-tested)
 
-- [ ] **6. Date parsing and formatting.**
+- [x] **6. Date parsing and formatting.**
   - `src/domain/dates.ts`: `parseLegacyDate(input)` accepts strict `yyyy/MM/dd` and ISO `yyyy-MM-dd`. It rejects invalid calendar dates, single-digit parts and surrounding spaces. Blank or whitespace-only input returns a "missing" result [SPEC §6].
   - Formatters for `yyyy-MM-dd` and `yyyy/MM/dd`.
   - Table-driven tests, including every example in SPEC §6.
-- [ ] **7. Owner validation.**
+- [x] **7. Owner validation.**
   - `src/domain/owner.ts`, following SPEC §6:
     - Not-empty rules, with no trim.
     - Telephone check that mimics BigDecimal with ≤10 integer digits and no fraction. It accepts `1`, `1234567890`, `+123`, `-123`, `1e3` and rejects `abc`, `12345678901`, `123-456`.
     - An empty telephone gives `must not be empty` (D9).
   - Returns `{ field: message }` with one message per field.
   - Unit tests.
-- [ ] **8. Pet and visit validation and sorting.**
+- [x] **8. Pet and visit validation and sorting.**
   - `src/domain/pet.ts` and `src/domain/visit.ts`:
     - Pet required rules, `invalid date`, and the duplicate-name rule on create only, case-insensitive [SPEC §5.3].
     - Visit description `must not be empty`; date `invalid date`; a blank visit date gives `is required` (D1 fix).
@@ -161,7 +161,7 @@ A missing entity returns **404** `{ error }`.
   - Write `FINDINGS.md`: one entry per defect D1–D10 with the legacy behavior, its root cause in the legacy code (file:line), the modern fix, and the test that shows the difference.
   - Do not edit the tests.
 - [ ] **24. Production compose.**
-  - Add a Dockerfile for the modern app and a `modern` compose service: Fastify serving the web app on port 3000, using `db`.
+  - Add `modern/Dockerfile` (not under `docker/`, which is protected) and a `modern` compose service: Fastify serving the web app on port 3000, using `db`.
   - Seed on first start.
   - The sandbox has no Docker, so the loop writes these files but cannot run them. Add a NOTES.md line asking the human reviewer to verify on the host: `docker compose up -d legacy db modern`, then the full suite against both 8080 and 3000.
 - [ ] **25. Full green run.**

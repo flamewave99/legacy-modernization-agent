@@ -71,3 +71,82 @@ This file becomes README material, and the Ralph loop reads its tail every itera
   - When a `fix_plan.md` section completes, the orchestrator opens or updates a `migration` → `main` milestone PR. The human reviews and merges it with a merge commit.
   - `main` requires CI but no approval: a solo maintainer cannot approve their own PR, and only humans can act on GitHub anyway.
 - **N25 Test seam.** `RALPH_AGENT_CMD` replaces the agent with a scripted command. It was used to test the orchestrator's merge and CI-failure paths without spending model calls.
+- **N26 Orchestrator self-test (2026-10-12).** A scripted agent (`RALPH_AGENT_CMD`) broke CI on purpose by adding a `package.json` without a lockfile. CI failed, the failed log reached the next iteration through `.ralph/ci-feedback.md`, and the scripted fix on the same branch passed CI and auto-merged into `migration`.
+- **N27 Orchestrator guardrail tests (2026-10-12).**
+  - **CI-failure path.** A scripted agent broke CI on PR #2. The failure log reached the next iteration, the fix landed on the same branch, CI passed, and GitHub auto-merged the PR into `migration` about 2.5 minutes later. The orchestrator then removed its state and the remote branch.
+  - **Protected path.** A scripted agent edited `tests/characterization/specs/vets.spec.ts`. The loop stopped one second later. Nothing was pushed and no PR was opened.
+  - **Branch protection.** A direct push to `migration` was rejected even for the repo admin (`GH006: Protected branch update failed`).
+  - **False positive found.** The first run also stopped because of `.claude/scheduled_tasks.lock`, a runtime file Claude Code wrote on the host. Claude Code runtime files are now gitignored.
+- **N28 The human's `gh` token has no `workflow` scope during loop runs.** It was granted only to land `.github/workflows/ci.yml`, then removed. GitHub then rejects any orchestrator push that changes a workflow file, so the merge gate cannot be edited from the loop. This backs up the CI path guard with a rule GitHub enforces.
+- **N29 Auto-merge lags.** On PR #3, GitHub merged about 3.5 minutes after CI passed (state `CLEAN`, auto-merge enabled). The orchestrator now waits up to 15 minutes for the merge instead of 5.
+- **N30 Faster CI** (measured on PRs #1–#4 before the change: about 100s cached, 170s cold).
+  - Parallel jobs behind one `ci` gate job, so branch protection still needs a single check.
+  - Selective testing: the legacy suite runs only when `legacy/`, `docker/`, the tests, compose or CI change, and always on pushes to `migration`/`main`, nightly and on manual runs.
+  - npm and Playwright browser caching.
+  - Postgres as a service container.
+  - `legacy/` and `docker/` became protected paths, which is what makes skipping the legacy suite on agent PRs safe.
+  - At thousands of PRs a day, the next steps would be a merge queue (batching instead of rebase-and-rerun), affected-only builds (Nx/Turborepo), test sharding and larger runners.
+- **N31 CI timing after N30.**
+  - A PR that changes CI or tests runs the full gate. PR #5 took 1m30s with a cold browser cache.
+  - A docs-only or modern-only PR skips the legacy suite. This PR is the docs-only measurement; its time is in the PR description.
+- **N32 Task 1: TypeScript 6, not 7.** `typescript@latest` is 7.0.2 (the characterization suite uses it), but typescript-eslint 8.71 supports only `<6.1.0`, so `modern/` pins `typescript@~6.0.3`. Prettier skips `*.md`, `docker-compose.yml` and the protected paths so `npm run lint` never asks to reformat files the loop may not or should not touch.
+- **N33 Task 3: two tsconfigs in `modern/api`.** typescript-eslint's project service uses the nearest `tsconfig.json`, so that file covers `src`, `test` and `vitest.config.ts` with `noEmit` (used by `typecheck`), and `tsconfig.build.json` emits only `src` to `dist`. `@types/node` is pinned to `^24` to match the Node 24 runtime (latest is 26). `npm start` runs the compiled `dist/server.js`, so build first.
+- **N34 Ratchet CI runs only the listed tests.** Running all 60 characterization tests against a half-built modern app made each agent PR wait 7+ minutes while failing tests timed out (PR #8). CI now runs `--test-list modern/ratchet.txt`, which costs nothing while the list is empty and only covers passing tests later. Finding newly passing tests stays with the agent, locally, as fix_plan.md's conventions already say. CI enforces, the agent discovers.
+- **N35 RAG over legacy code (Phase 4).** See `rag/README.md`.
+  - Local embeddings: `nomic-embed-text` served by an Ollama container on the compose network. No API key, and the sandbox reaches it without internet access.
+  - Java is chunked per method, with its javadoc and annotations, plus a condensed type chunk: 102 files become 325 chunks.
+  - pgvector, one row per chunk per model, so the eval can compare models.
+  - Running the chunker over real files found three bugs before any test was written: annotation `(` taken as the method name, "interface" in javadoc taken as the type name, and an unnamed nested enum.
+  - First anecdotes: 4/6 questions retrieved well. The misses were "validation" (that word is absent from the validation code) and "default database".
+- **N36 MCP server (Phase 5).** `search_legacy_code` over stdio, registered with `claude mcp add --scope project`. See `mcp/README.md`.
+  - An end-to-end check with headless Claude, built-in tools disabled so the MCP tool was its only view of the code, found a real bug. Claude Code passes the model `structuredContent` rather than text when a tool declares an `outputSchema`, so the agent got file:line without code.
+  - After the fix it answered from code alone, with exact lines (`OwnerController.java:90-93`).
+  - A throwaway copy of the sandbox (separate compose project, no host ports) found two more first-run gaps before they reached the loop:
+    - A fresh Postgres volume had no `rag` database. The indexer now creates it.
+    - The MCP SDK's stdio client passes only an env allowlist (PATH, HOME, ...) to the server it launches, so the e2e test silently fell back to localhost. `.mcp.json` already passes the variables explicitly; the test now does too.
+- **N37 Parallel work alongside the loop.** RAG and MCP were built in a separate git worktree, so the loop's checkout stayed untouched.
+  - Strict up-to-date branch protection means my PRs and the loop's PRs can leave each other behind. A small watcher kept them updated (`gh pr update-branch`).
+  - The orchestrator should do this itself, and a merge queue is the large-scale answer.
+- **N38 Orchestrator v2: conflicts are part of the loop, not a failure.** My parallel PRs (#9, #10) left the loop's PR #11 conflicting in `NOTES.md`. v1 saw "no CI checks" (GitHub runs no CI on a conflicting PR), called it a CI failure, and gave the agent an empty log to "fix". v2:
+  - Merges `origin/migration` into the agent's branch before every push, and while waiting whenever the PR is `BEHIND`.
+  - On a conflict, writes `.ralph/feedback.md` telling the agent exactly which files conflict and to run `git merge origin/migration`, so the agent resolves its own conflicts.
+  - Treats "no checks" as stuck (a human looks), not as a CI failure.
+  - Watches all jobs, because the required `ci` gate only appears once its dependencies finish.
+  - Recreates the sandbox at start, so config changes take effect.
+  - Streams the agent's tool calls into the log live.
+  - Re-checks a resumed PR without running the agent when there is no feedback.
+- **N40 v2 self-test found two bugs in the CI-failure path.**
+  - Feedback was fetched with `gh run view --log-failed`, which refuses while other jobs in the run are still going. The PR shows `fail` as soon as one job fails, so the agent got "still in progress" instead of the error. The orchestrator now reads the failed job's own log from the jobs API, which is available immediately.
+  - Under `set -e` and `pipefail` that failed pipeline ended the orchestrator with exit 1 and no message. An `ERR` trap now reports the line and command, and the log fetch is non-fatal.
+- **N39 Orchestrator v2 self-test (2026-10-12).** A scripted agent added a failing unit test. CI failed, `.ralph/feedback.md` carried the failing job's log to the next iteration, and the scripted fix passed CI and auto-merged.
+- **N41 Merge-time race.** The resumed v2 self-test passed every path (resume without feedback, `BEHIND` sync, CI failure with the real job log, agent fix, auto-merge of PR #14). It also hit a race: in the seconds between GitHub's squash-merge and the PR reading `MERGED`, the orchestrator saw `migration` move (by this PR's own merge), merged it in, and pushed to the branch GitHub had just deleted. It now re-checks the PR state before syncing and after a failed push.
+- **N42 MCP inside the sandbox, verified; connectors locked out of the loop.**
+  - Headless Claude in the recreated sandbox loaded `search_legacy_code` (project scope), searched, then confirmed the cited lines with grep as the tool description asks, and answered the duplicate-pet-name question correctly with citations.
+  - The same session also loaded the human's claude.ai connectors (Claude Docs, Google Drive). Those go through the Anthropic API, which the firewall allows, so an unattended agent could have reached a personal Drive.
+  - The loop now runs Claude with `--strict-mcp-config --mcp-config .mcp.json`: only the project's server, a least-privilege tool set.
+- **N43 Resuming an older branch broke the agent's start.** #17 passed `--mcp-config .mcp.json`, a working-tree path, and I had verified it only on `migration`. Resuming the Task 4 branch, which predates `.mcp.json`, made Claude refuse to start ("MCP config file not found"). The orchestrator also counted each failed start as an attempt and used up all 3 in 4 seconds.
+  - The MCP config is now read from `origin/migration` and passed as a JSON string, like the prompt, so it is tamper-proof and branch-independent.
+  - A non-zero exit from the agent now stops the loop with the log path instead of consuming attempts.
+  - Verified by running the exact agent command on the old branch.
+- **N44 Task 4: reset runs through `pg`, not `psql`.** `db:reset` builds and runs `dist/db-reset.js`, which loads `db/schema.sql` and `db/seed.sql` in one transaction, so CI needs no Postgres client binary. The seed inserts explicit ids (the legacy H2 file uses `default`) so ids never depend on sequence state, then `setval`s each sequence to `max(id)`. Vitest now runs test files serially (`fileParallelism: false`) because integration tests share one database.
+- **N45 Task 5: DATE columns stay strings.** node-postgres parses `DATE` into a JS `Date` at local midnight, so a non-UTC server can shift `2010-09-07` by a day. The pool uses its own `TypeOverrides` (not the global `pg.types`) to return `DATE` as the raw `yyyy-MM-dd` text, matching legacy's `LocalDate`; `PetRow.birth_date` and `VisitRow.visit_date` are `string | null`.
+- **N46 Retrieval eval (Phase 6).** Measured on 22 development and 12 held-out questions (`rag/README.md` "Eval").
+  - Postgres `ts_rank` has no IDF, so keyword search, and a hybrid built on it, did worse than vectors alone. BM25 fixed that.
+  - The 2.5x larger `mxbai-embed-large` lost to `nomic-embed-text`.
+  - Hybrid (BM25 + nomic) won the development set: 21/22 in the top 5 vs 19. The held-out set, written before its results existed, was mixed: better hit@1 and MRR, one fewer top-5 hit. So hybrid ships as `RAG_STRATEGY=hybrid` with the default unchanged, instead of switching production behavior on a within-noise difference. This is the dev/held-out discipline: decide on one set, confirm on fresh data.
+- **N47 Parity report.** `node scripts/parity-report.mjs` writes `docs/PARITY.md`: characterization tests per spec file, all passing on legacy, and on modern the ones listed in `modern/ratchet.txt`. Both columns are CI-verified, so the report claims nothing CI does not enforce.
+- **N48 Task 6: dates are a plain `{ year, month, day }`, and year 0 is rejected.** Legacy's strict `uuuu` parsing accepts `0000/01/01`, but Postgres has no year 0 and would fail the insert, so modern returns `invalid date` instead of a 500. Years are exactly 4 digits.
+- **N49 Task 7: telephone parity goes beyond ASCII.** Probing the running legacy app showed that `@Digits` (`new BigDecimal(String)`) accepts any BMP Unicode decimal digit (`١٢٣`, `０１`, `1e٠٩`), counts precision without leading zeros (`00000000000001` passes, `0E9` passes, `0E10` fails) and rejects any fraction scale (`1.0`, `10E-1`), while `1.` passes. It rejects supplementary-plane digits like `𝟏` because Java reads UTF-16 chars. `isValidTelephone` reproduces each of these cases. The probes left 12 `zzprobe` owners in the sandbox's legacy DB, which no test searches for.
+- **N50 Task 8: Java's case-insensitive order is not `localeCompare`, and not quite lowercasing.** `String.CASE_INSENSITIVE_ORDER` maps each code point through `toUpperCase` then `toLowerCase` and compares numbers, so `é` sorts after `z` and dotless `ı` equals `i`; `compareCaseInsensitive` mirrors it (pets, specialties). The duplicate-pet check is different again: `Owner.getPet` lowercases whole strings, so `ı` vs `i` is not a duplicate there. `validatePet` also rejects an unknown type name with `invalid value` (D5), on edit too, and visit sorting puts any legacy NULL date last instead of throwing (D1).
+- **N51 Code review of milestone PR #20** (`/code-review`, 10 findings). Each was verified before fixing; 9 were in my code and 1 in the agent's.
+  - Search CLI dropped the question when `-k` was omitted, the documented usage. My manual tests always passed `-k`.
+  - MCP server's entry check compared a URL to a raw path, so it would silently not start under a path with a space.
+  - `ralph.sh`:
+    - Failures inside `$(...)` did not stop functions, and output could leak into variables. Fixed with `shopt -s inherit_errexit`; a minimal repro confirmed it.
+    - Conflict file names were lost in a subshell.
+    - Used feedback was never deleted, so a resume would redo it.
+  - Keyword search lowercased before splitting camelCase. Re-running the eval left every number unchanged, because no eval question contains an identifier. Still a real bug for agent queries.
+  - Hybrid mode rebuilt the BM25 index on every call. It is now cached per process.
+  - Parity script duplicated the ratchet's test-id logic and presented the legacy column as measured. They now share `.github/scripts/test-ids.mjs`, and the columns say "CI requires".
+  - `rag/` and `mcp/` had no CI coverage. They are now protected paths for the agent; a CI job needs the `workflow` scope and is a follow-up.
+  - The agent's date parser rejects signed 5+-digit years that legacy accepts. Recorded as accepted divergence D11 rather than replicated.

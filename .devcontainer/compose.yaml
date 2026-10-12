@@ -1,7 +1,8 @@
 # Overlay on the root docker-compose.yml: adds the sandboxed workspace container.
 # It reaches the other services by name on the compose network:
 #   legacy app  http://legacy:8080
-#   Postgres    postgres://petclinic:petclinic@db:5432/petclinic
+#   Postgres    postgres://petclinic:petclinic@db:5432/petclinic (RAG index in database "rag")
+#   Ollama      http://ollama:11434 (local embeddings for the search_legacy_code MCP tool)
 # No Docker socket is mounted, so the agent cannot control Docker.
 # Relative paths resolve from the repo root (the first compose file's directory).
 services:
@@ -16,6 +17,8 @@ services:
     environment:
       DATABASE_URL: postgres://petclinic:petclinic@db:5432/petclinic
       LEGACY_URL: http://legacy:8080
+      RAG_DATABASE_URL: postgres://petclinic:petclinic@db:5432/rag
+      OLLAMA_URL: http://ollama:11434
       NODE_OPTIONS: --max-old-space-size=4096
       CLAUDE_CONFIG_DIR: /home/node/.claude
     volumes:
@@ -30,6 +33,8 @@ services:
       db:
         condition: service_healthy
       legacy:
+        condition: service_started
+      ollama:
         condition: service_started
 
 volumes:

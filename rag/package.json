@@ -1,0 +1,24 @@
+{
+  "name": "legacy-rag",
+  "private": true,
+  "description": "Retrieval over the legacy PetClinic code: chunker, pgvector index, search and ask CLIs.",
+  "type": "module",
+  "scripts": {
+    "index": "tsx src/index-cli.ts",
+    "search": "tsx src/search-cli.ts",
+    "ask": "tsx src/ask-cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx src/eval-cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

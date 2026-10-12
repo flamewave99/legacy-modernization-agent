@@ -1,11 +1,20 @@
-# Merge gate for main. Branch protection requires this job ("ci") to pass before any PR merges.
-# The Ralph agent's GitHub token has no "workflows" permission, so it cannot change this file.
+# Merge gate for main and migration. Branch protection requires the "ci" job, which passes only
+# when every job it depends on succeeded or was skipped on purpose.
+# The orchestrator's GitHub token has no "workflow" scope, so loop pushes cannot change this file.
+#
+# Speed: jobs run in parallel, and the legacy suite runs only when something it depends on changed.
+# Legacy is frozen and agent branches may not touch it or the tests, so re-running it on every
+# agent PR would add time without adding evidence. Pushes to main/migration, the nightly schedule
+# and manual runs always run everything.
 name: ci
 
 on:
   pull_request:
   push:
     branches: [main, migration]
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,22 +23,28 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DATABASE_URL: postgres://petclinic:petclinic@localhost:5433/petclinic
+
 jobs:
-  ci:
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
+    outputs:
+      legacy: ${{ steps.filter.outputs.legacy }}
+      modern: ${{ steps.filter.outputs.modern }}
+      modern_api: ${{ steps.filter.outputs.modern_api }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      # Agent branches (ralph/*) may not touch the gate itself: the behavior tests,
-      # CI scripts, the sandbox, the loop script or Claude settings.
+      # Agent branches (ralph/*) may not touch the gate itself or the frozen legacy app.
       - name: Guard protected paths on agent branches
         if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'ralph/')
         run: |
           changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
-          blocked=$(echo "$changed" | grep -E '^(tests/characterization/|\.github/|\.devcontainer/|\.claude/|ralph\.sh$|PROMPT\.md$|CLAUDE\.md$)' || true)
+          blocked=$(echo "$changed" | grep -E '^(tests/characterization/|legacy/|docker/|\.github/|\.devcontainer/|\.claude/|ralph\.sh$|PROMPT\.md$|CLAUDE\.md$)' || true)
           if [ -n "$blocked" ]; then
             echo "::error::Agent branches may not change protected paths:"
             echo "$blocked"
@@ -41,8 +56,7 @@ jobs:
         run: |
           base="origin/${{ github.base_ref }}"
           if git cat-file -e "$base:modern/ratchet.txt" 2>/dev/null; then
-            git show "$base:modern/ratchet.txt" > /tmp/ratchet-base.txt
-            missing=$(grep -vE '^\s*(#|$)' /tmp/ratchet-base.txt | while IFS= read -r line; do
+            missing=$(git show "$base:modern/ratchet.txt" | grep -vE '^\s*(#|$)' | while IFS= read -r line; do
               grep -qxF -- "$line" modern/ratchet.txt 2>/dev/null || echo "$line"
             done)
             if [ -n "$missing" ]; then
@@ -52,9 +66,35 @@ jobs:
             fi
           fi
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
+      - name: Decide which jobs to run
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+            if echo "$changed" | grep -qE '^(legacy/|docker/|tests/characterization/|docker-compose\.yml$|\.github/)'; then
+              legacy=true
+            else
+              legacy=false
+            fi
+          else
+            legacy=true
+          fi
+          [ -f package.json ] && modern=true || modern=false
+          [ -f modern/api/package.json ] && modern_api=true || modern_api=false
+          echo "legacy=$legacy modern=$modern modern_api=$modern_api"
+          {
+            echo "legacy=$legacy"
+            echo "modern=$modern"
+            echo "modern_api=$modern_api"
+          } >> "$GITHUB_OUTPUT"
+
+  legacy-suite:
+    needs: changes
+    if: needs.changes.outputs.legacy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v4
 
@@ -68,20 +108,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Start legacy app and Postgres
+      # Tomcat boots while the suite's dependencies install.
+      - name: Start legacy app
+        run: docker compose up -d --no-build legacy
+
+      - uses: ./.github/actions/setup-characterization
+
+      - name: Wait for legacy app
         run: |
-          docker compose up -d --no-build --wait db
-          docker compose up -d --no-build legacy
-          for i in $(seq 1 90); do curl -sf -o /dev/null http://localhost:8080/ && exit 0; sleep 2; done
+          for _ in $(seq 1 90); do curl -sf -o /dev/null http://localhost:8080/ && exit 0; sleep 2; done
           docker compose logs legacy | tail -50
           exit 1
-
-      - name: Install characterization suite
-        working-directory: tests/characterization
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-          npm run typecheck
 
       - name: Characterization suite against legacy (including @legacy-bug tests)
         working-directory: tests/characterization
@@ -89,37 +126,119 @@ jobs:
           INCLUDE_LEGACY_BUGS: '1'
         run: npm test
 
-      - name: Modern build, lint and unit tests
-        if: hashFiles('package.json') != ''
-        env:
-          DATABASE_URL: postgres://petclinic:petclinic@localhost:5433/petclinic
-        run: |
-          npm ci
-          npm run build
-          npm run lint
-          npm test
-
-      - name: Characterization ratchet against modern
-        if: hashFiles('modern/api/package.json') != ''
-        env:
-          DATABASE_URL: postgres://petclinic:petclinic@localhost:5433/petclinic
-        run: |
-          npm run db:reset -w modern/api --if-present
-          (npm run start -w modern/api > /tmp/modern.log 2>&1 &)
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/api/health && break; sleep 1; done
-          cd tests/characterization
-          BASE_URL=http://localhost:3000 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/modern-results.json \
-            npx playwright test --reporter=json,list --output=test-results-modern || true
-          node ../../.github/scripts/check-ratchet.mjs /tmp/modern-results.json ../../modern/ratchet.txt
-
-      - name: Upload test reports
+      - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-reports
+          name: legacy-playwright-report
           path: |
             tests/characterization/playwright-report
             tests/characterization/test-results
+          if-no-files-found: ignore
+
+  modern-checks:
+    needs: changes
+    if: needs.changes.outputs.modern == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: petclinic
+          POSTGRES_USER: petclinic
+          POSTGRES_PASSWORD: petclinic
+        ports:
+          - 5433:5432
+        options: --health-cmd "pg_isready -U petclinic -d petclinic" --health-interval 2s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Lint, build and unit tests
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+          npm test
+
+  modern-ratchet:
+    needs: changes
+    if: needs.changes.outputs.modern_api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: petclinic
+          POSTGRES_USER: petclinic
+          POSTGRES_PASSWORD: petclinic
+        ports:
+          - 5433:5432
+        options: --health-cmd "pg_isready -U petclinic -d petclinic" --health-interval 2s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tests/characterization/package-lock.json
+
+      - name: Build and start the modern app
+        run: |
+          npm ci
+          npm run build
+          npm run db:reset -w modern/api --if-present
+          (npm run start -w modern/api > /tmp/modern.log 2>&1 &)
+
+      - uses: ./.github/actions/setup-characterization
+
+      # CI enforces, the agent discovers: only tests already listed in modern/ratchet.txt run here,
+      # so a half-built app does not make every PR wait out the timeouts of 60 failing tests.
+      # Finding newly passing tests is the agent's job, locally (fix_plan.md "Conventions").
+      - name: Characterization ratchet against modern
+        run: |
+          grep -vE '^\s*(#|$)' modern/ratchet.txt > /tmp/ratchet-list.txt || true
+          if [ ! -s /tmp/ratchet-list.txt ]; then
+            echo "modern/ratchet.txt lists no tests yet; nothing to enforce."
+            exit 0
+          fi
+          for _ in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/api/health && break; sleep 1; done
+          cd tests/characterization
+          BASE_URL=http://localhost:3000 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/modern-results.json \
+            npx playwright test --test-list /tmp/ratchet-list.txt --reporter=json,list --output=test-results-modern || true
+          node ../../.github/scripts/check-ratchet.mjs /tmp/modern-results.json ../../modern/ratchet.txt
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: modern-playwright-report
+          path: |
             tests/characterization/test-results-modern
             /tmp/modern.log
           if-no-files-found: ignore
+
+  # The single required status check. Skipped jobs count as passing; failed or cancelled ones do not.
+  ci:
+    needs: [changes, legacy-suite, modern-checks, modern-ratchet]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: All required jobs passed or were skipped
+        run: |
+          echo "changes=${{ needs.changes.result }} legacy-suite=${{ needs.legacy-suite.result }} modern-checks=${{ needs.modern-checks.result }} modern-ratchet=${{ needs.modern-ratchet.result }}"
+          for r in ${{ join(needs.*.result, ' ') }}; do
+            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          done
+          [ "${{ needs.changes.result }}" = success ]
