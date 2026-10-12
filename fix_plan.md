@@ -54,7 +54,7 @@ If CI fails or `migration` starts to conflict, `.ralph/feedback.md` tells the ne
   - Set sequences with `setval` to `max(id)`.
   - Script `npm run db:reset -w modern/api` drops, recreates and seeds.
   - Integration test: after a reset there are 10 owners, 13 pets, 4 visits, 6 vets and 6 types.
-- [ ] **5. DB module.**
+- [x] **5. DB module.**
   - `src/db.ts`: a `pg.Pool` built from `DATABASE_URL`, closed on Fastify `onClose`.
   - Typed row interfaces for every table.
   - Done when there is a passing integration test that queries `types` ordered by name and gets bird, cat, dog, hamster, lizard, snake.
