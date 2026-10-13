@@ -1,6 +1,6 @@
 # legacy-modernization-agent
 
-Portfolio project: convert a legacy Spring MVC/JSP app (`legacy/`) into a modern TypeScript app (`modern/`) using AI agents, with RAG over the legacy code, an MCP server, and evals.
+Proof of concept: convert a legacy Spring MVC/JSP app (`legacy/`) into a modern TypeScript app (`modern/`) using AI agents, with RAG over the legacy code, an MCP server, and evals.
 
 ## Layout
 - `legacy/`: original Java app. Read-only; never edit except Docker setup.

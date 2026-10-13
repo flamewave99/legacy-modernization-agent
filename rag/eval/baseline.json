@@ -1,5 +1,5 @@
 {
-  "about": "Gate for npm run eval -- --check (NOTES N76). Scores from CI, identical across 17 runs on 2026-10-12. A strategy fails when hit@5 drops by more than tolerance.hit5 questions or MRR@10 by more than tolerance.mrr. Raise a baseline in the same PR that improves it.",
+  "about": "Gate for npm run eval -- --check (NOTES N76). Scores from CI, identical across 17 CI runs. A strategy fails when hit@5 drops by more than tolerance.hit5 questions or MRR@10 by more than tolerance.mrr. Raise a baseline in the same PR that improves it.",
   "tolerance": { "hit5": 1, "mrr": 0.02 },
   "development": {
     "keyword:bm25": { "hit5": 16, "mrr": 0.598 },

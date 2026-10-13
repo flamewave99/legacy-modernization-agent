@@ -1,7 +1,7 @@
 # Legacy-defect findings
 
 The defects found in the legacy app while specifying it (SPEC.md §8), and what modern does instead.
-Decision (SPEC §8, 2026-10-12): fix the defects rather than reproduce them. Seven are fixed (D1, D2, D4–D7, D9). D8 is kept for parity, D3 behaves the same by design, D10 goes away because i18n is not ported, and D11 is an accepted divergence.
+Decision (SPEC §8): fix the defects rather than reproduce them. Seven are fixed (D1, D2, D4–D7, D9). D8 is kept for parity, D3 behaves the same by design, D10 goes away because i18n is not ported, and D11 is an accepted divergence.
 
 Legacy file paths are relative to `legacy/src/main/`. The legacy app runs with the default `jpa`
 profile (`PetclinicInitializer.java:51`), so the JPA repositories are the ones that matter.
@@ -9,7 +9,7 @@ profile (`PetclinicInitializer.java:51`), so the JPA repositories are the ones t
 ## How this was checked
 
 The `@legacy-bug` tests (`tests/characterization/specs/legacy-bugs.spec.ts`) pin the legacy behavior.
-Run with `INCLUDE_LEGACY_BUGS=1` on 2026-10-12:
+Run with `INCLUDE_LEGACY_BUGS=1`:
 
 | Test | Legacy (`$LEGACY_URL`) | Modern (`:3000`) | Defect |
 |---|---|---|---|
