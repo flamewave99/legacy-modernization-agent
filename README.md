@@ -2,12 +2,24 @@
 
 [![ci](https://github.com/flamewave99/legacy-modernization-agent/actions/workflows/ci.yml/badge.svg?branch=migration)](https://github.com/flamewave99/legacy-modernization-agent/actions/workflows/ci.yml)
 
-AI coding agents migrated a legacy Java web app to TypeScript. A characterization test suite is the gate, the plan comes from a spec the agents derived from the code, and an unattended loop opened one CI-gated pull request per task. The migration is complete ([run and verify it yourself](docs/WALKTHROUGH.md)): the modern app passes all 60 characterization tests that pin the legacy app's behavior, and the legacy defects found along the way are written up in [`FINDINGS.md`](FINDINGS.md).
+AI coding agents migrated a legacy Java web app to TypeScript. A characterization test suite is the gate, the plan comes from a spec the agents derived from the code, and an unattended loop opened one CI-gated pull request per task. The migration is complete ([run and verify it yourself](#run-and-verify-it)): the modern app passes all 60 characterization tests that pin the legacy app's behavior, and the legacy defects found along the way are written up in [`FINDINGS.md`](FINDINGS.md).
 
 - **From:** [Spring Framework PetClinic](https://github.com/spring-petclinic/spring-framework-petclinic): Spring MVC, JSP, XML config, JPA on Tomcat.
 - **To:** React + Vite, Fastify, Postgres, with the same routes and behavior.
 
 <p align="center"><img src="docs/ralph-conflict-resolution.svg" alt="Animated replay of a real loop log: the agent merges migration into its branch, resolves a NOTES.md conflict, runs build, lint and tests, and commits" width="900"></p>
+
+## The idea in brief
+
+Rewriting a legacy app is risky because nobody can say exactly what the old app does, quirks included. This project makes that question testable, then lets an AI agent do the rewrite under a gate it cannot weaken:
+
+1. **Pin the behavior first.** A Playwright suite of 60 *characterization tests* records what the legacy app does today, judged from the outside (visible text, form field names, URLs, status codes), so the same suite can judge any rewrite.
+2. **Derive a spec and a plan from the code.** Subagents analyzed the legacy code; every claim was checked against the running app; the result is [`SPEC.md`](SPEC.md) and 25 small ordered tasks in [`fix_plan.md`](fix_plan.md).
+3. **Let an agent work in a loop.** A *Ralph loop* runs Claude Code headless with the same prompt over and over; each iteration picks the next unticked task, implements it with tests, and commits. State lives in files (the plan, `NOTES.md`), not in a conversation.
+4. **Make safety structural.** The agent runs in a firewalled sandbox with no GitHub credentials. A host script turns each iteration into a pull request, and GitHub merges it only when CI is green. A *ratchet* list makes sure a test that passes against the new app can never stop passing.
+5. **Measure everything.** Behavior parity per spec file, a retrieval eval for the RAG search over the legacy code (with a held-out set), and a write-up of every legacy defect found.
+
+**Contents:** [Results](#results) · [Legacy defects found](#legacy-defects-found) · [Architecture](#architecture) · [How it works](#how-it-works) · [Guardrails](#guardrails) · [Lessons](#lessons-from-the-evals-and-tests) · [Run and verify it](#run-and-verify-it) · [Where to look](#where-to-look) · [Layout](#layout)
 
 ## Results
 
@@ -22,6 +34,24 @@ Final numbers, 2026-10-12. Per-spec parity is in [`docs/PARITY.md`](docs/PARITY.
 | Legacy defects | 11 documented in the spec (SPEC §8), each with its root cause at file:line ([`FINDINGS.md`](FINDINGS.md)). 7 are fixed in modern; 1 is kept for parity, the others are out of scope by decision. |
 | Retrieval (RAG) | Right file in the top 5 for **19/22** development questions (vector) and **21/22** (hybrid BM25 + vector). Held-out set: 12/12 and 11/12. Deterministic across 17 CI runs, so CI now gates on it. [Details](rag/README.md#eval-phase-6). |
 | Guardrails | Every safety path tested on purpose, live on GitHub: a failing CI run, a merge conflict, an agent editing a protected test, a direct push to a protected branch, and (offline) a usage-limit cut-off. |
+
+## Legacy defects found
+
+Writing the spec and the tests surfaced 11 defects in the legacy app. The decision was to fix them rather than copy them; six `@legacy-bug` tests pin the legacy behavior, so the difference is visible (they pass on legacy and fail on modern by design). Root causes at file:line, fixes and tests: [`FINDINGS.md`](FINDINGS.md).
+
+| | Legacy behavior | Modern |
+|---|---|---|
+| D1 | A blank visit date is saved; the owner page then crashes (500) once that pet has a second visit | Fixed: the date is required |
+| D2 | A rejected owner edit re-renders as "New Owner" / "Add Owner" | Fixed: stays "Owner" / "Update Owner" |
+| D3 | The visits list route points to a view that does not exist (404) | Same 404, by design |
+| D4 | Editing a pet that does not exist is a raw 500 with a stack trace | Fixed: the friendly error page |
+| D5 | An unknown pet type leaks a Java conversion error, unescaped | Fixed: `invalid value` |
+| D6 | Error messages are written as raw HTML (an XSS path) | Fixed: React escapes all text |
+| D7 | Pet edit trusts a hidden form id, so a request can overwrite any pet and move it to another owner | Fixed: only the URL's ids count |
+| D8 | Pet and visit pages do not check that the pet belongs to the owner in the URL | Kept for parity |
+| D9 | An empty telephone shows one of two error messages at random | Fixed: always `must not be empty` |
+| D10 | German messages are garbled (the UTF-8 message file is read as ISO-8859-1) | Not applicable: i18n not ported |
+| D11 | Years with more than 4 digits are accepted | Accepted divergence: 4 digits only |
 
 ## Architecture
 
@@ -84,7 +114,9 @@ The agent runs unattended with permission prompts skipped, so safety comes from 
 | Agent reaches personal data | Runs with `--strict-mcp-config`: only the project MCP server, none of the human's account connectors | Orchestrator |
 | Human merges unreviewed work to `main` | The orchestrator opens a milestone PR when a plan section completes. A human reviews and merges it | Process |
 
-## What the evals and tests taught (selected from [`NOTES.md`](NOTES.md))
+## Lessons from the evals and tests
+
+Selected from [`NOTES.md`](NOTES.md), which records every decision and surprise, numbered.
 
 - **Characterization tests caught wrong analysis.** Subagents and I made confident claims that the running app contradicted: a "deterministic" validation message is random per request; a "bug" in the date picker isn't one. The suite, not the analysis, is the source of truth.
 - **Keyword search needs IDF.** Hybrid search built on Postgres `ts_rank` was *worse* than vectors alone. BM25 made it the best configuration on the development set.
@@ -99,18 +131,78 @@ The agent runs unattended with permission prompts skipped, so safety comes from 
 - **Load finds races.** A redirect race passed locally and failed only under CI's load; a 12-worker stress run reproduced it before the fix (NOTES N68).
 - **Review applies to human code too.** A code review of the first milestone found 10 issues: 9 in code I wrote, 1 in the agent's.
 
-## Run it
+## Run and verify it
 
-**[`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md)** runs and verifies everything step by step, with the expected result of each step and a guided tour of what each part shows. The short version:
+Requirements: Docker with Compose, Node 24, Playwright's Chromium dependencies (`npx playwright install-deps chromium`, once), and free ports 8080, 3000, 5433 and 11434. Claude Code only for the MCP step. About 15 minutes from a fresh clone; [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md) has the same steps with more explanation.
 
-Requirements: Docker, Node 24, and Playwright's Chromium dependencies (`npx playwright install-deps chromium`).
+**1. Start both apps.** Legacy (Spring, JSP, Tomcat) on http://localhost:8080, modern (React, Fastify) on http://localhost:3000, sharing Postgres. The modern container seeds an empty database on first start.
 
 ```bash
-docker compose up -d --build legacy db modern   # legacy on :8080, modern on :3000
-cd tests/characterization && npm install && npx playwright install chromium
-npm test                                        # 60 passed against legacy
-BASE_URL=http://localhost:3000 npm test         # the same 60 passed against modern
+docker compose up -d --build legacy db modern
+docker compose ps                            # legacy, db and modern Up; db and modern (healthy)
 ```
+
+Open both and do the same things in each: Find owners → "Davis" (a list of two) → "Franklin" (one match, straight to the owner) → Add New Pet → Add Visit → Veterinarians → Error. Pages, messages and URLs match.
+
+**2. Behavior parity: the same 60 tests against both apps.**
+
+```bash
+cd tests/characterization
+npm install && npx playwright install chromium
+npm test                                     # 60 passed (legacy, the default)
+BASE_URL=http://localhost:3000 npm test      # 60 passed (modern)
+```
+
+**3. Legacy defects: where modern differs on purpose.**
+
+```bash
+INCLUDE_LEGACY_BUGS=1 npx playwright test specs/legacy-bugs.spec.ts                                  # legacy: 6 passed
+INCLUDE_LEGACY_BUGS=1 BASE_URL=http://localhost:3000 npx playwright test specs/legacy-bugs.spec.ts   # modern: 5 failed, 1 passed (expected)
+cd ../..
+```
+
+**4. Modern app: lint, build and unit tests.**
+
+```bash
+npm install
+npm run lint && npm run build && npm test    # API 274 passed, web 36 passed
+```
+
+To run from source instead of the container: `docker compose stop modern`, then `npm run db:reset -w modern/api && npm run start -w modern/api`.
+
+**5. RAG over the legacy code, and the eval that gates CI.**
+
+```bash
+docker compose up -d ollama && docker compose exec ollama ollama pull nomic-embed-text
+cd rag && npm install
+npm run index                                # ~1.5 min on CPU: 102 files -> 325 chunks
+npm run search -- "how are duplicate pet names rejected?"   # Owner#getPet, PetController#processCreationForm
+npm run eval -- --check keyword:bm25 vector:nomic-embed-text hybrid-bm25:nomic-embed-text   # "same:" for each
+npm run eval -- --holdout --check vector:nomic-embed-text hybrid-bm25:nomic-embed-text
+git checkout eval/ && cd ..                  # the eval rewrites eval/RESULTS*.md with only the strategies run
+```
+
+**6. The MCP server** (Claude Code): `cd mcp && npm install && cd .. && claude mcp list` shows `legacy-code: ✔ Connected`. Then ask Claude Code to "use search_legacy_code to find how duplicate pet names are rejected".
+
+**7. The orchestrator, offline.** `scripts/ralph-selftest.sh` runs the real `ralph.sh` against a throwaway clone with a scripted agent (no GitHub, no model) and prints `PASS: usage-limit handling`.
+
+**The loop itself.** The migration is finished (`DONE` exists), so `./ralph.sh` stops at once. Each real iteration is a [pull request from a `ralph/*` branch](https://github.com/flamewave99/legacy-modernization-agent/pulls?q=is%3Apr+head%3Aralph) with its CI run, and the animation at the top replays one. To run it for a new plan: `npx @devcontainers/cli up --workspace-folder .`, log in once with `npx @devcontainers/cli exec --workspace-folder . claude`, then `./ralph.sh` on the host.
+
+**Clean up:** `docker compose down` (add `-v` to delete the database and model volumes).
+
+## Where to look
+
+| Look at | What it shows |
+|---|---|
+| [`tests/characterization/specs/owners.spec.ts`](tests/characterization/specs/owners.spec.ts) | Characterization tests: behavior pinned from the outside, so one test judges both implementations |
+| [`modern/ratchet.txt`](modern/ratchet.txt), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | The ratchet (a passing test can never stop passing) and the path guard that stops agent branches touching tests, CI or prompts |
+| [`SPEC.md`](SPEC.md), [`fix_plan.md`](fix_plan.md) | The spec derived from the code and checked against the running app; 25 tasks, each one loop iteration |
+| [`ralph.sh`](ralph.sh), [`PROMPT.md`](PROMPT.md), [`.devcontainer/`](.devcontainer/) | The loop and the trust boundary: CI failures and merge conflicts fed back to the agent, usage limits waited out, a sandbox with no credentials |
+| [`FINDINGS.md`](FINDINGS.md) D1, D7, D9 | Legacy defects traced to root cause: a crash only on the second visit, a hidden form id that lets a request overwrite any pet, a validation message that is random per request |
+| [`NOTES.md`](NOTES.md) N49, N52, N56 | Parity details found by probing the running legacy app: which ids Spring accepts, which Unicode digits count, Jackson's property order |
+| [`NOTES.md`](NOTES.md) N38, N68, N69 | What went wrong and how it was fixed: conflicts between human and agent PRs, a race only visible under CI load, a stale server that made test runs lie |
+| [`rag/README.md`](rag/README.md), [`NOTES.md`](NOTES.md) N46, N75, N76 | Measuring retrieval: BM25 vs `ts_rank`, development vs held-out sets, report-only until proven deterministic, then a gate; and why the agent preferred grep |
+| [`modern/api/src/routes/pages.ts`](modern/api/src/routes/pages.ts) | How a single-page app keeps legacy's HTTP statuses: the server decides 200, 400 or 404 per route before React loads |
 
 ## Layout
 

@@ -1,4 +1,4 @@
-# Walkthrough: run it, verify it, and see what it shows
+# Walkthrough: run it and verify it
 
 About 15 minutes from a fresh clone, most of it image builds and model downloads. Each step says what you should see.
 
@@ -96,17 +96,6 @@ Starting it (for a new plan): `npx @devcontainers/cli up --workspace-folder .`, 
 docker compose down          # add -v to also delete the database and model volumes
 ```
 
-## Guided tour: what each part shows
+## Where to look next
 
-| Look at | What it shows |
-|---|---|
-| [`README.md`](../README.md) "Architecture" and "Guardrails" | The trust boundary: the agent runs unattended with prompts skipped but has no GitHub credentials; the host orchestrator pushes, CI decides what merges, a human reviews milestones. |
-| [`tests/characterization/specs/owners.spec.ts`](../tests/characterization/specs/owners.spec.ts) | Characterization tests: behavior pinned from outside, so the same test judges both implementations. |
-| [`modern/ratchet.txt`](../modern/ratchet.txt), `.github/workflows/ci.yml` | The ratchet: a passing test can never stop passing, and the list can only grow. CI also blocks agent branches from touching tests, CI or prompts. |
-| [`SPEC.md`](../SPEC.md), [`fix_plan.md`](../fix_plan.md) | Spec derived from the code and checked against the running app; 25 tasks, each sized for one loop iteration. |
-| [`ralph.sh`](../ralph.sh), [`PROMPT.md`](../PROMPT.md) | The loop: one task per iteration, CI failures and merge conflicts fed back to the agent, usage limits waited out. |
-| [`NOTES.md`](../NOTES.md) N49, N52, N56 | Parity details found by probing the running legacy app: which ids Spring accepts, which Unicode digits count, Jackson's property order. |
-| [`NOTES.md`](../NOTES.md) N38, N68, N69 | Things that went wrong and how they were fixed: merge conflicts between human and agent PRs, a race that only showed under CI load, a stale server that made test runs lie. |
-| [`FINDINGS.md`](../FINDINGS.md) D1, D7, D9 | Legacy defects traced to root cause: a NULL date that crashes the owner page only on the second visit, a hidden form id that lets a request overwrite any pet, a validation message that is random per request. |
-| [`rag/README.md`](../rag/README.md), NOTES N46, N75, N76 | Measuring retrieval: BM25 vs `ts_rank`, development vs held-out sets, report-only until proven deterministic, then a gate; and the finding that the agent preferred grep. |
-| [`modern/api/src/routes/pages.ts`](../modern/api/src/routes/pages.ts) | How a single-page app keeps legacy's HTTP statuses: the server decides 200/400/404 per route before React loads. |
+The README's ["Where to look"](../README.md#where-to-look) table lists the files that show each idea, and its ["Legacy defects found"](../README.md#legacy-defects-found) table summarizes `FINDINGS.md`.
