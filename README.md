@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/flamewave99/legacy-modernization-agent/actions/workflows/ci.yml/badge.svg?branch=migration)](https://github.com/flamewave99/legacy-modernization-agent/actions/workflows/ci.yml)
 
-AI coding agents migrated a legacy Java web app to TypeScript. A characterization test suite is the gate, the plan comes from a spec the agents derived from the code, and an unattended loop opened one CI-gated pull request per task. The migration is complete ([run and verify it yourself](#run-and-verify-it)): the modern app passes all 60 characterization tests that pin the legacy app's behavior, and the legacy defects found along the way are written up in [`FINDINGS.md`](FINDINGS.md).
+A proof of concept for AI-driven legacy modernization: coding agents migrated a legacy Java web app to TypeScript. A characterization test suite is the gate, the plan comes from a spec the agents derived from the code, and an unattended loop opened one CI-gated pull request per task. The migration is complete ([run and verify it yourself](#run-and-verify-it)): the modern app passes all 60 characterization tests that pin the legacy app's behavior, and the legacy defects found along the way are written up in [`FINDINGS.md`](FINDINGS.md).
 
 - **From:** [Spring Framework PetClinic](https://github.com/spring-petclinic/spring-framework-petclinic): Spring MVC, JSP, XML config, JPA on Tomcat.
 - **To:** React + Vite, Fastify, Postgres, with the same routes and behavior.
@@ -11,7 +11,7 @@ AI coding agents migrated a legacy Java web app to TypeScript. A characterizatio
 
 ## The idea in brief
 
-Rewriting a legacy app is risky because nobody can say exactly what the old app does, quirks included. This project makes that question testable, then lets an AI agent do the rewrite under a gate it cannot weaken:
+Rewriting a legacy app is risky because nobody can say exactly what the old app does, quirks included. This proof of concept makes that question testable, then lets an AI agent do the rewrite under a gate it cannot weaken:
 
 1. **Pin the behavior first.** A Playwright suite of 60 *characterization tests* records what the legacy app does today, judged from the outside (visible text, form field names, URLs, status codes), so the same suite can judge any rewrite.
 2. **Derive a spec and a plan from the code.** Subagents analyzed the legacy code; every claim was checked against the running app; the result is [`SPEC.md`](SPEC.md) and 25 small ordered tasks in [`fix_plan.md`](fix_plan.md).
@@ -23,7 +23,7 @@ Rewriting a legacy app is risky because nobody can say exactly what the old app 
 
 ## Results
 
-Final numbers, 2026-10-12. Per-spec parity is in [`docs/PARITY.md`](docs/PARITY.md); every task is a [pull request](https://github.com/flamewave99/legacy-modernization-agent/pulls?q=is%3Apr+head%3Aralph).
+Final numbers. Per-spec parity is in [`docs/PARITY.md`](docs/PARITY.md); every task is a [pull request](https://github.com/flamewave99/legacy-modernization-agent/pulls?q=is%3Apr+head%3Aralph).
 
 | | |
 |---|---|

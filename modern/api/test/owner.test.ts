@@ -15,7 +15,7 @@ const valid = {
 };
 
 describe('isValidTelephone', () => {
-  // Every case below was checked against the running legacy app (2026-10-12).
+  // Every case below was checked against the running legacy app.
   it.each([
     '1',
     '1234567890',
