@@ -112,42 +112,42 @@ A missing entity returns **404** `{ error }`.
 
 ## D. Web app
 
-- [ ] **14. Web scaffold and static serving.**
+- [x] **14. Web scaffold and static serving.**
   - `modern/web`: Vite + React + TypeScript + React Router, built to `modern/web/dist`.
   - Copy into `modern/web/public/resources/`: `petclinic.css`, the fonts and the images from `legacy/src/main/webapp/resources/`.
   - Get Font Awesome 4.7 from npm (`font-awesome@4.7.0`).
   - Fastify (`@fastify/static`) serves `dist` and `/resources/*`.
   - Page-route status rules [SPEC §1]: known patterns return `index.html` with 200, a non-numeric id returns 400, anything else returns 404.
   - Done when `errors.spec.ts` tests "unknown path returns 404" and "non-numeric owner id returns 400" pass.
-- [ ] **15. Layout and welcome page.**
+- [x] **15. Layout and welcome page.**
   - Document title, navbar (4 links + brand), Pivotal footer image [SPEC §2].
   - Welcome page [SPEC §3].
   - Done when `home-and-nav.spec.ts` passes, except tests that need pages not built yet.
-- [ ] **16. Error page and `/oups`.**
+- [x] **16. Error page and `/oups`.**
   - Reusable `ErrorPage` component [SPEC §4.8].
   - `/oups` renders it with the exact message.
   - Unknown owner (API 404) renders it with HTTP 200.
   - Done when `errors.spec.ts` passes.
-- [ ] **17. Vets page** [SPEC §4.7]. Done when `vets.spec.ts` passes.
-- [ ] **18. Find Owners and owners list** [SPEC §4.1, §4.2, §5.1].
+- [x] **17. Vets page** [SPEC §4.7]. Done when `vets.spec.ts` passes.
+- [x] **18. Find Owners and owners list** [SPEC §4.1, §4.2, §5.1].
   - Search via `?lastName=`.
   - One result navigates with replace to `/owners/{id}`; none shows the error in the field container.
   - Done when `find-owners.spec.ts` passes, except tests needing owner create (task 20).
-- [ ] **19. Owner details page** [SPEC §4.3].
+- [x] **19. Owner details page** [SPEC §4.3].
   - Keep the label/value text order exactly.
   - Done when the `owner details` tests in `owners.spec.ts` pass (the escaping test needs task 20).
-- [ ] **20. Owner form, new and edit** [SPEC §4.4].
+- [x] **20. Owner form, new and edit** [SPEC §4.4].
   - Shared `OwnerForm`.
   - The field `name` attributes are the contract.
   - Each error renders inside the field's wrapper element.
   - After saving, navigate to `/owners/{id}`.
   - Done when `owners.spec.ts` and `find-owners.spec.ts` pass.
-- [ ] **21. Pet form, new and edit** [SPEC §4.5].
+- [x] **21. Pet form, new and edit** [SPEC §4.5].
   - `<select name="type">`.
   - Date input shows and accepts `yyyy-MM-dd`, and also accepts `yyyy/MM/dd` typed in.
   - Owner row.
   - Done when `pets.spec.ts` passes.
-- [ ] **22. Visit form** [SPEC §4.6].
+- [x] **22. Visit form** [SPEC §4.6].
   - Pet table with dates as `yyyy/MM/dd`.
   - Date pre-filled with today as `yyyy-MM-dd`.
   - Previous visits.
@@ -155,16 +155,16 @@ A missing entity returns **404** `{ error }`.
 
 ## E. Finish
 
-- [ ] **23. Legacy-defect findings.**
+- [x] **23. Legacy-defect findings.**
   - Run `INCLUDE_LEGACY_BUGS=1` against modern.
   - Confirm that each failing `@legacy-bug` test corresponds to a fix listed in SPEC §8 (all defects are fixed by decision).
   - Write `FINDINGS.md`: one entry per defect D1–D10 with the legacy behavior, its root cause in the legacy code (file:line), the modern fix, and the test that shows the difference.
   - Do not edit the tests.
-- [ ] **24. Production compose.**
+- [x] **24. Production compose.**
   - Add `modern/Dockerfile` (not under `docker/`, which is protected) and a `modern` compose service: Fastify serving the web app on port 3000, using `db`.
   - Seed on first start.
   - The sandbox has no Docker, so the loop writes these files but cannot run them. Add a NOTES.md line asking the human reviewer to verify on the host: `docker compose up -d legacy db modern`, then the full suite against both 8080 and 3000.
-- [ ] **25. Full green run.**
+- [x] **25. Full green run.**
   - The full characterization suite passes against `http://localhost:3000`, and against legacy (`BASE_URL=$LEGACY_URL`) as a regression check.
   - Build, lint and unit tests are clean.
   - Then create `DONE`.

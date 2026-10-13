@@ -157,6 +157,19 @@ describe('read endpoints', () => {
     });
   });
 
+  describe('GET /api/pets/:petId', () => {
+    it('returns the pet with its owner, as the owner-scoped route does', async () => {
+      const res = await get('/api/pets/7');
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual((await get('/api/owners/6/pets/7')).json());
+    });
+
+    it('returns 404 for an unknown pet and 400 for a non-numeric id', async () => {
+      expect((await get('/api/pets/999999')).statusCode).toBe(404);
+      expect((await get('/api/pets/abc')).statusCode).toBe(400);
+    });
+  });
+
   it('GET /api/pettypes lists types by name', async () => {
     const body = (await get('/api/pettypes')).json<PetType[]>();
     expect(body.map((t) => t.name)).toEqual(['bird', 'cat', 'dog', 'hamster', 'lizard', 'snake']);

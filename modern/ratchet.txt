@@ -4,3 +4,60 @@
 errors.spec.ts › unknown path returns 404
 vets.spec.ts › GET /vets.json returns the vet list as JSON
 vets.spec.ts › GET /vets.xml returns the vet list as XML
+errors.spec.ts › non-numeric owner id returns 400
+home-and-nav.spec.ts › every page keeps the same document title
+home-and-nav.spec.ts › welcome page shows heading, image and title
+errors.spec.ts › /oups shows the friendly error page with the exception message (HTTP 200)
+errors.spec.ts › unknown owner id shows the friendly error page (HTTP 200)
+vets.spec.ts › vets page links to XML and JSON views
+vets.spec.ts › vets page lists vets by last name with specialties, "none" when empty
+find-owners.spec.ts › GET /owners without a lastName parameter lists all owners
+find-owners.spec.ts › a search matching several owners shows the list
+find-owners.spec.ts › a search with no match stays on the find form with "has not been found"
+find-owners.spec.ts › empty search lists all owners with address, city, telephone and pets
+find-owners.spec.ts › find owners form has a last name field, a search button and an add-owner link
+find-owners.spec.ts › search is a case-insensitive prefix match on last name
+find-owners.spec.ts › seed owners are listed in id order before owners added later
+home-and-nav.spec.ts › navbar links reach every top-level page
+find-owners.spec.ts › a search matching exactly one owner redirects to that owner
+find-owners.spec.ts › owner name in the list links to the owner details page
+owners.spec.ts › owner details › lists each pet with its visits, newest visit first
+owners.spec.ts › owner details › shows owner information, action links and pets for a seed owner
+visits.spec.ts › pets on the owner page link "Add Visit" in pet name order
+find-owners.spec.ts › a newly created owner is found by its last name
+owners.spec.ts › add owner › all fields empty: every field reports an error and nothing is saved
+owners.spec.ts › add owner › entered values are kept when the form is re-shown with errors
+owners.spec.ts › add owner › new owner form is empty with "New Owner" heading and "Add Owner" button
+owners.spec.ts › add owner › telephone "1" (1 to 10 digits) is accepted
+owners.spec.ts › add owner › telephone "123-456" is rejected
+owners.spec.ts › add owner › telephone "1234567890" (1 to 10 digits) is accepted
+owners.spec.ts › add owner › telephone "12345678901" is rejected
+owners.spec.ts › add owner › telephone "abc" is rejected
+owners.spec.ts › add owner › valid owner is saved and shown on its details page
+owners.spec.ts › add owner › whitespace-only first name is accepted (not trimmed)
+owners.spec.ts › edit owner › edit form is pre-filled, titled "Owner", with "Update Owner" button
+owners.spec.ts › edit owner › editing keeps the owner's pets
+owners.spec.ts › edit owner › invalid edit is rejected and the change is not saved
+owners.spec.ts › edit owner › saving changes redirects to the owner page with new values
+owners.spec.ts › owner details › output is HTML-escaped
+pets.spec.ts › add pet › a future birth date is accepted
+pets.spec.ts › add pet › all fields empty: name, birth date and type are required
+pets.spec.ts › add pet › birth date is also accepted as yyyy-MM-dd
+pets.spec.ts › add pet › duplicate pet name for the same owner is rejected, ignoring case
+pets.spec.ts › add pet › invalid birth date shows "invalid date"
+pets.spec.ts › add pet › new pet form shows owner, empty fields and pet types in name order
+pets.spec.ts › add pet › pets are listed by name, case-insensitively
+pets.spec.ts › add pet › the same pet name is allowed for different owners
+pets.spec.ts › add pet › valid pet is added and shown on the owner page
+pets.spec.ts › edit pet › edit form is pre-filled, titled "Pet", with "Update Pet" button
+pets.spec.ts › edit pet › empty name and birth date are required on edit
+pets.spec.ts › edit pet › renaming a pet to another pet's name of the same owner is NOT rejected
+pets.spec.ts › edit pet › saving changes updates the pet on the owner page
+pets.spec.ts › edit pet › submitting the edit form unchanged succeeds
+visits.spec.ts › an invalid date and empty description are reported together
+visits.spec.ts › empty description is rejected with "must not be empty"
+visits.spec.ts › invalid visit date shows "invalid date"
+visits.spec.ts › new visit form shows the pet, today's date and previous visits
+visits.spec.ts › submitting with the pre-filled date saves a visit dated today
+visits.spec.ts › valid visit is saved and shown on the owner page, newest first
+visits.spec.ts › visit date is also accepted as yyyy-MM-dd
