@@ -1,19 +1,18 @@
-# Frozen, protected or generated paths. Prettier formats modern/ and root config files only.
-legacy/
-tests/
-docker/
-private/
-logs/
-.claude/
-.devcontainer/
-.github/
-.ralph/
-rag/
-mcp/
+# Allowlist: Prettier formats modern/, scripts/ and the root config files, nothing else. The rest is
+# frozen (legacy/, tests/), protected, generated, or a separate package with its own tooling
+# (rag/, mcp/), and a new top-level path stays out until it is listed here (NOTES N74).
+/*
+!/modern/
+!/scripts/
+!/package.json
+!/tsconfig.base.json
+!/eslint.config.mjs
+!/.prettierrc.json
+!/.mcp.json
+# Inside the allowlisted paths.
+**/node_modules/
 **/dist/
 **/coverage/
 # Copied verbatim from legacy/ so the look matches.
 modern/web/public/resources/
-package-lock.json
 *.md
-docker-compose.yml

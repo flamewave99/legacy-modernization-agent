@@ -4,6 +4,7 @@
 //   npm run eval                                   # all strategies whose model is indexed
 //   npm run eval -- vector:nomic-embed-text hybrid-bm25:nomic-embed-text
 //   npm run eval -- --holdout <strategies...>      # held-out set, written to eval/RESULTS-holdout.md
+//   npm run eval -- --check <strategies...>        # also fail (exit 1) on a drop below eval/baseline.json
 import { readFileSync, writeFileSync } from 'node:fs';
 import { config } from './config.js';
 import { bm25Search, loadBm25Index, queryTerms } from './bm25.js';
@@ -23,11 +24,37 @@ interface Strategy {
 
 const K = 10;
 const holdout = process.argv.includes('--holdout');
+const check = process.argv.includes('--check');
 const questionFile = holdout ? 'questions-holdout.json' : 'questions.json';
 const resultFile = holdout ? 'RESULTS-holdout.md' : 'RESULTS.md';
 const questions = (JSON.parse(readFileSync(new URL(`../eval/${questionFile}`, import.meta.url), 'utf8')) as { questions: Question[] }).questions;
 
 /** Expected suffixes are relative to legacy/src/main/ unless they start with legacy/. */
+interface Baseline {
+  tolerance: { hit5: number; mrr: number };
+  development: Record<string, { hit5: number; mrr: number }>;
+  holdout: Record<string, { hit5: number; mrr: number }>;
+}
+
+/** Compares scores with eval/baseline.json; returns one message per regression. */
+function checkBaseline(summary: { name: string; hit5: number; mrr: number }[]): string[] {
+  const baseline = JSON.parse(readFileSync(new URL('../eval/baseline.json', import.meta.url), 'utf8')) as Baseline;
+  const expected = holdout ? baseline.holdout : baseline.development;
+  const { tolerance } = baseline;
+  const failures: string[] = [];
+  for (const [name, base] of Object.entries(expected)) {
+    const got = summary.find((s) => s.name === name);
+    if (!got) {
+      failures.push(`${name}: in eval/baseline.json but not run`);
+      continue;
+    }
+    const line = `${name}: hit@5 ${got.hit5} (baseline ${base.hit5}), MRR@10 ${got.mrr.toFixed(3)} (baseline ${base.mrr.toFixed(3)})`;
+    if (got.hit5 < base.hit5 - tolerance.hit5 || got.mrr < base.mrr - tolerance.mrr - 1e-9) failures.push(line);
+    else console.log(`${got.hit5 === base.hit5 && got.mrr.toFixed(3) === base.mrr.toFixed(3) ? 'same' : 'changed, within tolerance'}: ${line}`);
+  }
+  return failures;
+}
+
 const isRelevant = (hit: SearchHit, q: Question): boolean =>
   q.expected.some((suffix) => hit.path.endsWith(suffix.startsWith('legacy/') ? suffix : `/${suffix}`));
 
@@ -55,7 +82,7 @@ await withClient(config.databaseUrl, async (client) => {
     }),
   ];
 
-  const wanted = process.argv.slice(2).filter((a) => a !== '--holdout');
+  const wanted = process.argv.slice(2).filter((a) => a !== '--holdout' && a !== '--check');
   const selected = wanted.length > 0 ? strategies.filter((s) => wanted.includes(s.name)) : strategies;
   if (selected.length === 0) throw new Error(`No strategy matches ${wanted.join(', ')}; available: ${strategies.map((s) => s.name).join(', ')}`);
 
@@ -109,4 +136,10 @@ await withClient(config.databaseUrl, async (client) => {
   writeFileSync(new URL(`../eval/${resultFile}`, import.meta.url), report);
   console.log(table.join('\n'));
   console.log(`\nWrote eval/${resultFile}`);
+
+  if (check) {
+    const failures = checkBaseline(summary);
+    for (const f of failures) console.error(`REGRESSION ${f}`);
+    if (failures.length > 0) process.exitCode = 1;
+  }
 });

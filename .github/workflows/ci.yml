@@ -265,12 +265,12 @@ jobs:
             echo "::endgroup::"
           done
 
-  # Retrieval eval against a real local model. Report-only: scores go to the job summary and never
-  # fail the build. A 22-question eval should not gate merges until its run-to-run stability is
-  # known (instrument before enforcing).
+  # Retrieval eval against a real local model, gated on rag/eval/baseline.json. It was report-only
+  # until 17 CI runs produced identical scores (NOTES N55, N76); now a drop beyond the baseline's
+  # tolerance fails the build. Runs on PRs that touch rag/, mcp/, legacy/ or CI (about 4 minutes).
   rag-eval:
     needs: changes
-    if: needs.changes.outputs.rag == 'true' && github.event_name != 'pull_request'
+    if: needs.changes.outputs.rag == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -307,26 +307,27 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm run index
-          npm run eval -- keyword:bm25 vector:nomic-embed-text hybrid-bm25:nomic-embed-text
-          npm run eval -- --holdout vector:nomic-embed-text hybrid-bm25:nomic-embed-text
+          status=0
+          npm run eval -- --check keyword:bm25 vector:nomic-embed-text hybrid-bm25:nomic-embed-text || status=1
+          npm run eval -- --holdout --check vector:nomic-embed-text hybrid-bm25:nomic-embed-text || status=1
           {
-            echo "## Retrieval eval (report-only)"
+            echo "## Retrieval eval (gated on rag/eval/baseline.json)"
             sed -n '/^| Strategy/,/^$/p' eval/RESULTS.md
             echo "### Held-out set"
             sed -n '/^| Strategy/,/^$/p' eval/RESULTS-holdout.md
           } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
   # The single required status check. Skipped jobs count as passing; failed or cancelled ones do not.
   ci:
-    # rag-eval is report-only and deliberately not listed.
-    needs: [changes, legacy-suite, modern-checks, modern-ratchet, rag-mcp]
+    needs: [changes, legacy-suite, modern-checks, modern-ratchet, rag-mcp, rag-eval]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: All required jobs passed or were skipped
         run: |
-          echo "changes=${{ needs.changes.result }} legacy-suite=${{ needs.legacy-suite.result }} modern-checks=${{ needs.modern-checks.result }} modern-ratchet=${{ needs.modern-ratchet.result }} rag-mcp=${{ needs.rag-mcp.result }}"
+          echo "changes=${{ needs.changes.result }} legacy-suite=${{ needs.legacy-suite.result }} modern-checks=${{ needs.modern-checks.result }} modern-ratchet=${{ needs.modern-ratchet.result }} rag-mcp=${{ needs.rag-mcp.result }} rag-eval=${{ needs.rag-eval.result }}"
           for r in ${{ join(needs.*.result, ' ') }}; do
             case "$r" in success|skipped) ;; *) exit 1 ;; esac
           done

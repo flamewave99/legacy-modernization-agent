@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Same suite runs against legacy (default) and modern: BASE_URL=http://localhost:5173 npx playwright test
+// Same suite runs against legacy (default) and modern: BASE_URL=http://localhost:3000 npx playwright test
 const baseURL = process.env.BASE_URL ?? 'http://localhost:8080';
 
 // Tests tagged @legacy-bug pin down known legacy defects (see SPEC.md "Known legacy defects").

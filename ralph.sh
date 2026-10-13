@@ -26,6 +26,8 @@ main() {
   local max_iterations="${MAX_ITERATIONS:-25}"
   local max_attempts="${MAX_ATTEMPTS_PER_PR:-3}"
   local max_idle="${MAX_IDLE_ITERATIONS:-2}"
+  # A usage-limit window longer than this (e.g. the weekly one) stops the loop instead of waiting.
+  local max_limit_wait="${MAX_LIMIT_WAIT_SECONDS:-21600}"
   local base="${BASE_BRANCH:-migration}"
   local protected='^(ralph\.sh|PROMPT\.md|CLAUDE\.md|\.devcontainer/|\.github/|\.claude/|tests/characterization/|legacy/|docker/|rag/|mcp/)'
   local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/legacy-modernization-agent"
@@ -38,6 +40,8 @@ main() {
   CONFLICT_FILES_PATH="$state_dir/conflict-files"
   RUN_DIR="logs/ralph-$(date +%Y%m%d-%H%M%S)"
   mkdir -p "$RUN_DIR"
+  # Keep the orchestrator's own console output too, not just the agent's per-run logs.
+  exec 2> >(tee -a "$RUN_DIR/ralph.log" >&2)
 
   hostgit fetch --quiet origin
   assert_clean_protected_paths "$protected"
@@ -46,8 +50,11 @@ main() {
   npx --yes @devcontainers/cli up --workspace-folder . --remove-existing-container > "$RUN_DIR/devcontainer-up.log" 2>&1 \
     || die "dev container failed to start; see $RUN_DIR/devcontainer-up.log"
 
-  local attempts=0 idle=0 i branch resumed pr outcome
-  for i in $(seq 1 "$max_iterations"); do
+  # i counts iterations toward the cap; run numbers the agent's log files. They differ when a run
+  # is cut off by a usage limit, which does not use up an iteration.
+  local attempts=0 idle=0 i=0 run=0 branch resumed pr outcome status reset
+  while [[ "$i" -lt "$max_iterations" ]]; do
+    i=$((i + 1))
     hostgit fetch --quiet origin
     branch="$(resume_branch "$state_dir" "$base")"
     resumed="$branch"
@@ -71,9 +78,29 @@ main() {
       # re-check the PR instead of letting the agent start the next task on this branch.
       log "Resuming $branch; re-checking its PR before involving the agent."
     else
-      # A failing agent run (did not start, usage limit, crash) is not an attempt at the task.
-      run_agent "$base" "$RUN_DIR/iteration-$i" \
-        || die "the agent exited with an error (code $?); see $RUN_DIR/iteration-$i.log. The branch and its feedback are kept for the next run."
+      run=$((run + 1))
+      status=0
+      run_agent "$base" "$RUN_DIR/iteration-$run" || status=$?
+      if reset="$(limit_reset_epoch "$RUN_DIR/iteration-$run.jsonl")"; then
+        # The account's usage limit cut the run short. Not an attempt at the task, and not an iteration.
+        i=$((i - 1))
+        [[ -z "$(hostgit status --porcelain)" ]] \
+          || die "usage limit hit with uncommitted changes on $branch (resets $(fmt_epoch "$reset")); commit or discard them, then rerun."
+        wait_for_limit_reset "$reset" "$max_limit_wait"
+        if [[ "$(hostgit rev-list --count "origin/$base..HEAD")" -eq 0 ]]; then
+          # Nothing was committed: drop the branch and start the task again on a fresh one.
+          rm -f "$state_dir/pr-branch"
+          hostgit switch --quiet "$base" && hostgit branch --quiet -D "$branch"
+        else
+          # Commits made before the cut-off are real work. Resume the branch: its feedback (if any)
+          # goes back to the agent, otherwise its PR is opened or re-checked.
+          echo "$branch" > "$state_dir/pr-branch"
+        fi
+        continue
+      elif [[ "$status" -ne 0 ]]; then
+        # A failing agent run (did not start, crash) is not an attempt at the task.
+        die "the agent exited with an error (code $status); see $RUN_DIR/iteration-$run.log. The branch and its feedback are kept for the next run."
+      fi
       # The agent has acted on the feedback; a resume after this should re-check the PR, not redo it.
       rm -f "$FEEDBACK"
     fi
@@ -184,8 +211,9 @@ resume_branch() {
 run_agent() {
   local base="$1" log_base="$2"
   if [[ -n "${RALPH_AGENT_CMD:-}" ]]; then
-    # Test seam: replace the agent with a scripted command (see NOTES.md).
-    bash -c "$RALPH_AGENT_CMD" < /dev/null 2>&1 | tee "$log_base.log" >&2
+    # Test seam: replace the agent with a scripted command (see NOTES.md). Its output also lands in
+    # the .jsonl file, so a script can emit stream events such as a usage-limit rejection.
+    bash -c "$RALPH_AGENT_CMD" < /dev/null 2>&1 | tee "$log_base.jsonl" | tee "$log_base.log" >&2
     return "${PIPESTATUS[0]}"
   fi
   # Prompt and MCP config come from origin, not the working tree: the agent cannot tamper with
@@ -217,6 +245,35 @@ summarize_stream() {
       }
       if (e.type === "result") console.log("  done:  " + short(String(e.result ?? e.subtype), 600));
     });'
+}
+
+# Prints the reset time (epoch seconds) when the agent's run was stopped by the account's usage
+# limit, i.e. the last rate_limit_event in its stream says "rejected"; fails otherwise.
+limit_reset_epoch() {
+  [[ -s "$1" ]] || return 1
+  node -e '
+    const lines = require("node:fs").readFileSync(process.argv[1], "utf8").split("\n");
+    let last;
+    for (const line of lines) {
+      try { const e = JSON.parse(line); if (e.type === "rate_limit_event") last = e.rate_limit_info; } catch {}
+    }
+    if (last?.status !== "rejected" || !Number.isInteger(last.resetsAt)) process.exit(1);
+    console.log(last.resetsAt);' "$1"
+}
+
+fmt_epoch() { date -u -d "@$1" '+%Y-%m-%d %H:%M UTC'; }
+
+# Sleeps until a minute after the usage limit resets, or stops the loop if that is too far away.
+wait_for_limit_reset() {
+  local reset="$1" max_wait="$2" wait
+  wait=$((reset + 60 - $(date +%s)))
+  [[ "$wait" -le "$max_wait" ]] \
+    || die "usage limit hit; it resets $(fmt_epoch "$reset"), later than MAX_LIMIT_WAIT_SECONDS allows. Rerun ./ralph.sh after that."
+  if [[ "$wait" -gt 0 ]]; then
+    log "Usage limit hit; waiting until $(fmt_epoch $((reset + 60))) ($((wait / 60)) min)."
+    sleep "$wait"
+  fi
+  log "Usage limit reset; resuming."
 }
 
 # Merges origin/<base> into the current branch when it is behind. On conflict the merge is undone
