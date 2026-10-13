@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/flamewave99/legacy-modernization-agent/actions/workflows/ci.yml/badge.svg?branch=migration)](https://github.com/flamewave99/legacy-modernization-agent/actions/workflows/ci.yml)
 
-AI coding agents migrated a legacy Java web app to TypeScript. A characterization test suite is the gate, the plan comes from a spec the agents derived from the code, and an unattended loop opened one CI-gated pull request per task. The migration is complete: the modern app passes all 60 characterization tests that pin the legacy app's behavior, and the legacy defects found along the way are written up in [`FINDINGS.md`](FINDINGS.md).
+AI coding agents migrated a legacy Java web app to TypeScript. A characterization test suite is the gate, the plan comes from a spec the agents derived from the code, and an unattended loop opened one CI-gated pull request per task. The migration is complete ([run and verify it yourself](docs/WALKTHROUGH.md)): the modern app passes all 60 characterization tests that pin the legacy app's behavior, and the legacy defects found along the way are written up in [`FINDINGS.md`](FINDINGS.md).
 
 - **From:** [Spring Framework PetClinic](https://github.com/spring-petclinic/spring-framework-petclinic): Spring MVC, JSP, XML config, JPA on Tomcat.
 - **To:** React + Vite, Fastify, Postgres, with the same routes and behavior.
@@ -101,33 +101,15 @@ The agent runs unattended with permission prompts skipped, so safety comes from 
 
 ## Run it
 
+**[`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md)** runs and verifies everything step by step, with the expected result of each step and a guided tour of what each part shows. The short version:
+
 Requirements: Docker, Node 24, and Playwright's Chromium dependencies (`npx playwright install-deps chromium`).
 
 ```bash
-# Both apps: legacy on :8080, modern (production image) on :3000, sharing Postgres
-docker compose up -d --build legacy db modern
-
-# Characterization suite against each
+docker compose up -d --build legacy db modern   # legacy on :8080, modern on :3000
 cd tests/characterization && npm install && npx playwright install chromium
-npm test                                   # 60 tests against legacy at :8080
-BASE_URL=http://localhost:3000 npm test    # the same 60 against modern
-INCLUDE_LEGACY_BUGS=1 npm test             # plus the 6 known-legacy-bug tests (pass on legacy only)
-
-# Modern app from source: lint, build, unit tests, then serve the build
-cd ../.. && npm install && npm run lint && npm run build && npm test
-docker compose stop modern                                        # frees :3000
-npm run db:reset -w modern/api && npm run start -w modern/api   # :3000
-
-# RAG, MCP and the retrieval eval
-docker compose up -d ollama && docker compose exec ollama ollama pull nomic-embed-text
-cd rag && npm install && npm run index && npm run eval
-npm run search -- "what happens when a search finds exactly one owner?"
-cd ../mcp && npm install && claude mcp list   # legacy-code: ✔ Connected
-
-# The Ralph loop (agent in the sandbox, orchestrator on the host)
-npx @devcontainers/cli up --workspace-folder .
-npx @devcontainers/cli exec --workspace-folder . claude   # first time only: log in
-./ralph.sh                                                 # on the host
+npm test                                        # 60 passed against legacy
+BASE_URL=http://localhost:3000 npm test         # the same 60 passed against modern
 ```
 
 ## Layout
@@ -143,7 +125,7 @@ npx @devcontainers/cli exec --workspace-folder . claude   # first time only: log
 | `.devcontainer/` | Agent sandbox: firewall, no Docker socket, read-only git config |
 | `.github/workflows/ci.yml` | Merge gate, including the retrieval eval against its baseline |
 | `rag/`, `mcp/` | Retrieval over legacy code and its MCP server; `rag/eval/` holds the question sets and results |
-| `docs/` | Parity report, loop animation |
+| `docs/` | Walkthrough (run, verify, guided tour), parity report, loop animation |
 | `scripts/` | `parity-report.mjs`, `log-to-svg.mjs`, `agent-tool-usage.mjs`, `ralph-selftest.sh` |
 | `NOTES.md` | Every decision and surprise, numbered |
 
