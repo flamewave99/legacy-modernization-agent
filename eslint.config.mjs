@@ -6,22 +6,18 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    // Only modern/ and root config files are ours to lint; the rest is frozen or generated.
+    // Allowlist: lint modern/, scripts/ and this file, nothing else. The rest is frozen (legacy/,
+    // tests/), protected, generated, or a separate package with its own tsconfig and tests (rag/,
+    // mcp/), and a new top-level path stays out until it is listed here (NOTES N74).
     ignores: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/coverage/**',
-      'legacy/**',
-      'tests/**',
-      'docker/**',
-      'private/**',
-      'logs/**',
-      '.claude/**',
-      '.devcontainer/**',
-      '.github/**',
-      // Separate packages with their own tsconfig, tests and dependencies (not root workspaces).
-      'rag/**',
-      'mcp/**',
+      '*',
+      '!modern/',
+      '!scripts/',
+      '!eslint.config.mjs',
+      '**/node_modules/',
+      '**/dist/',
+      '**/coverage/',
+      'modern/web/public/resources/',
     ],
   },
   eslint.configs.recommended,

@@ -25,7 +25,7 @@ Config (env): `RAG_DATABASE_URL` (default `postgres://petclinic:petclinic@localh
 
 ## Eval (Phase 6)
 
-`npm run eval` scores retrieval on 22 development questions (`eval/questions.json`), each with the legacy files that answer it. `npm run eval -- --holdout <strategies>` runs 12 held-out questions (`eval/questions-holdout.json`), written after the development results were seen and run once. Full per-question ranks are in `eval/RESULTS.md` and `eval/RESULTS-holdout.md`.
+`npm run eval` scores retrieval on 22 development questions (`eval/questions.json`), each with the legacy files that answer it. `npm run eval -- --holdout <strategies>` runs 12 held-out questions (`eval/questions-holdout.json`), written after the development results were seen and run once. Full per-question ranks are in `eval/RESULTS.md` and `eval/RESULTS-holdout.md`. With `--check`, the run also fails when a strategy drops below `eval/baseline.json` by more than its tolerance (one question at hit@5, 0.02 MRR); CI runs it that way.
 
 Development set (22 questions; a hit is a chunk from an expected file):
 
@@ -52,3 +52,5 @@ What the numbers say:
 - **It is not a clear overall winner.** Across all 34 questions hybrid ranks the right file first 23 times vs 21, and finds it in the top 5 32 vs 31 times. One question is 3 to 8 points here, so that is within noise.
 
 Decision: hybrid ships as a flag, `RAG_STRATEGY=hybrid`. The default stays `vector` (current behavior) until there is more evidence, for example logged queries from the loop's agent. With hybrid, the reported score is the RRF fusion score, so only the order is meaningful.
+
+**What the loop's agent actually did** (`node scripts/agent-tool-usage.mjs`, NOTES N75): across 30 iterations it called `search_legacy_code` 3 times (once without a query), against 36 shell commands on `legacy/` and 18 requests to the running legacy app. The two real queries are too few to settle vector vs hybrid; hybrid did put `PetValidator.java` (the answer to one of them) at rank 3 where vector missed it, which agrees with the development set. The default stays `vector`.
