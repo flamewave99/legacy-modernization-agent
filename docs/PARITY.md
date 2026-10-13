@@ -8,11 +8,11 @@ This script runs no tests: both columns state what CI enforces, so a failing bui
 
 | Spec file | Tests | Legacy (CI requires all) | Modern (CI requires ratchet) |
 |---|---|---|---|
-| `errors.spec.ts` | 4 | 4 | 1 (25%) |
-| `find-owners.spec.ts` | 10 | 10 | 0 (0%) |
-| `home-and-nav.spec.ts` | 3 | 3 | 0 (0%) |
-| `owners.spec.ts` | 17 | 17 | 0 (0%) |
-| `pets.spec.ts` | 14 | 14 | 0 (0%) |
-| `vets.spec.ts` | 4 | 4 | 0 (0%) |
-| `visits.spec.ts` | 8 | 8 | 0 (0%) |
-| **Total** | **60** | **60** | **1 (2%)** |
+| `errors.spec.ts` | 4 | 4 | 4 (100%) |
+| `find-owners.spec.ts` | 10 | 10 | 10 (100%) |
+| `home-and-nav.spec.ts` | 3 | 3 | 3 (100%) |
+| `owners.spec.ts` | 17 | 17 | 17 (100%) |
+| `pets.spec.ts` | 14 | 14 | 14 (100%) |
+| `vets.spec.ts` | 4 | 4 | 4 (100%) |
+| `visits.spec.ts` | 8 | 8 | 8 (100%) |
+| **Total** | **60** | **60** | **60 (100%)** |

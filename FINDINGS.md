@@ -1,7 +1,7 @@
 # Legacy-defect findings
 
 The defects found in the legacy app while specifying it (SPEC.md §8), and what modern does instead.
-Decision (SPEC §8, 2026-10-12): every defect is fixed in modern, except D8, which is kept for parity.
+Decision (SPEC §8, 2026-10-12): fix the defects rather than reproduce them. Seven are fixed (D1, D2, D4–D7, D9). D8 is kept for parity, D3 behaves the same by design, D10 goes away because i18n is not ported, and D11 is an accepted divergence.
 
 Legacy file paths are relative to `legacy/src/main/`. The legacy app runs with the default `jpa`
 profile (`PetclinicInitializer.java:51`), so the JPA repositories are the ones that matter.
