@@ -126,7 +126,7 @@ npx @devcontainers/cli exec --workspace-folder . claude   # first time only: log
 | `modern/` | The rewrite (built by the loop); `modern/ratchet.txt` lists tests already passing |
 | `ralph.sh`, `PROMPT.md`, `CLAUDE.md` | Orchestrator, per-iteration prompt, agent rules |
 | `.devcontainer/` | Agent sandbox: firewall, no Docker socket, read-only git config |
-| `.github/workflows/ci.yml` | Merge gate; report-only retrieval eval |
+| `.github/workflows/ci.yml` | Merge gate, including the retrieval eval against its baseline |
 | `rag/`, `mcp/` | Retrieval over legacy code and its MCP server; `rag/eval/` holds the question sets and results |
 | `docs/` | Parity report, loop animation |
 | `scripts/` | `parity-report.mjs`, `log-to-svg.mjs` |

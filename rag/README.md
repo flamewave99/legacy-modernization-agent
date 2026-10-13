@@ -25,7 +25,7 @@ Config (env): `RAG_DATABASE_URL` (default `postgres://petclinic:petclinic@localh
 
 ## Eval (Phase 6)
 
-`npm run eval` scores retrieval on 22 development questions (`eval/questions.json`), each with the legacy files that answer it. `npm run eval -- --holdout <strategies>` runs 12 held-out questions (`eval/questions-holdout.json`), written after the development results were seen and run once. Full per-question ranks are in `eval/RESULTS.md` and `eval/RESULTS-holdout.md`.
+`npm run eval` scores retrieval on 22 development questions (`eval/questions.json`), each with the legacy files that answer it. `npm run eval -- --holdout <strategies>` runs 12 held-out questions (`eval/questions-holdout.json`), written after the development results were seen and run once. Full per-question ranks are in `eval/RESULTS.md` and `eval/RESULTS-holdout.md`. With `--check`, the run also fails when a strategy drops below `eval/baseline.json` by more than its tolerance (one question at hit@5, 0.02 MRR); CI runs it that way.
 
 Development set (22 questions; a hit is a chunk from an expected file):
 
