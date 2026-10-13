@@ -379,7 +379,7 @@ Exact bodies are in `tests/characterization/specs/vets.spec.ts`.
 Tests for these are tagged `@legacy-bug`. The default suite excludes them
 (`INCLUDE_LEGACY_BUGS=1` runs them).
 
-**Decision (2026-10-12): fix all of them in modern.** They are documented as findings after the
+**Decision: fix all of them in modern.** They are documented as findings after the
 migration (fix_plan task 23). Each fix also gets a line in NOTES.md.
 
 | # | Legacy behavior | Evidence | Modern behavior (fix) |

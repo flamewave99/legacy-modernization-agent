@@ -19,7 +19,7 @@ on:
 permissions:
   contents: read
 
-# Runners are pinned (not ubuntu-latest, which moves to Ubuntu 26 on 2026-10-19) so an OS upgrade
+# Runners are pinned (not ubuntu-latest, which moves to each new Ubuntu release) so an OS upgrade
 # is a deliberate change with its own PR, not a surprise that breaks Playwright's system libraries.
 
 concurrency:

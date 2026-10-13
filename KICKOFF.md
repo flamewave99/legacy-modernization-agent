@@ -1,6 +1,6 @@
-We're building a portfolio project called **legacy-modernization-agent**. Read README.md and CLAUDE.md in this folder first; they're the plan and the rules.
+We're building a proof of concept called **legacy-modernization-agent**. Read README.md and CLAUDE.md in this folder first; they're the plan and the rules.
 
-Today, do Phases 1 and 2 only:
+Start with Phases 1 and 2 only:
 
 1. Clone https://github.com/spring-petclinic/spring-framework-petclinic into `legacy/` and get it running in Docker (add a Dockerfile/compose service if needed). Confirm it serves on localhost.
 2. Write characterization tests in `tests/characterization/` with Playwright (TypeScript) covering every user flow: find owners, add/edit owner, add/edit pet, add visit, vets list, validation errors, and error pages. Tests must read the base URL from `BASE_URL` so the same suite can later run against the modern app. Run them against the legacy app until they pass.
